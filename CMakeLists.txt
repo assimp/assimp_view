@@ -40,7 +40,6 @@ INCLUDE_DIRECTORIES( BEFORE
     ${PROJECT_SOURCE_DIR}
 )
 
-message({SDL2_LIBRARIES})
 link_directories(
     ${osre_folder}/lib
     ${osre_folder}/bin
@@ -66,10 +65,11 @@ set(assimpview_imgui_src
     ${osre_contrib_folder}/imgui/imstb_rectpack.h
     ${osre_contrib_folder}/imgui/imstb_textedit.h
     ${osre_contrib_folder}/imgui/imstb_truetype.h
-    ${platform_backend}
+    ${assimpview_platform_backend}
 )
 
 set(assimpview_main_src
+    ${assimpview_imgui_src}
     src/AssimpViewerApp.cpp
     src/AssimpViewerApp.h
     src/SceneData.h
