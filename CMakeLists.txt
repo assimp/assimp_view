@@ -23,6 +23,11 @@ find_package(SDL2 REQUIRED)
 set(osre_folder ${CMAKE_HOME_DIRECTORY}/contrib/osre/)
 set(osre_contrib_folder ${osre_folder}/contrib)
 
+set( CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY}/lib )
+set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY}/lib )
+set( CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY}/bin )
+
+
 INCLUDE_DIRECTORIES( BEFORE
     ${osre_folder}/src
     ${osre_contrib_folder}/src
@@ -77,7 +82,10 @@ set(assimpview_main_src
 
 )
 
+set(OSRE_BUILD_PLAYER OFF CACHE BOOL "Disable osre player")
 set(OSRE_BUILD_ED OFF CACHE BOOL "Disable osre ed")
+set(OSRE_BUILD_TESTS OFF CACHE BOOL "Disable osre unittests")
+set(OSRE_BUILD_SAMPLES OFF OFF CACHE BOOL "Disable osre samples")
 add_subdirectory(${osre_folder})
 
 SOURCE_GROUP(Main\\                   FILES ${main_src})
