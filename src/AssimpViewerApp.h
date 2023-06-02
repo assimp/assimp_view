@@ -24,7 +24,8 @@ public:
     void loadAsset(const IO::Uri &modelLoc);
 
 private:
-    App::Project *mProject;
+    //App::Project *mProject;
+    Rect2ui mWindowsRect;
     Common::Ids mIds;
     RenderBackend::TransformMatrixBlock mTransformMatrix;
     App::Entity *mEntity;

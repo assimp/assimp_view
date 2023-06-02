@@ -74,7 +74,7 @@ set(assimpview_imgui_src
 )
 
 set(assimpview_main_src
-    ${assimpview_imgui_src}
+    
     src/AssimpViewerApp.cpp
     src/AssimpViewerApp.h
     src/SceneData.h
@@ -88,7 +88,8 @@ set(OSRE_BUILD_TESTS OFF CACHE BOOL "Disable osre unittests")
 set(OSRE_BUILD_SAMPLES OFF OFF CACHE BOOL "Disable osre samples")
 add_subdirectory(${osre_folder})
 
-SOURCE_GROUP(Main\\                   FILES ${main_src})
+SOURCE_GROUP(ImGui\\       FILES ${${assimpview_imgui_src}})
+SOURCE_GROUP(Main\\        FILES ${assimpview_main_src})
 
 ADD_EXECUTABLE( assimp_view
     ${assimpview_imgui_src}    

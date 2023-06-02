@@ -47,8 +47,11 @@ static Project *createProject(const String &name) {
     return project;
 }
 
-AssimpViewerApp::AssimpViewerApp(int argc, char *argv[]) :
-        AppBase(argc, (const char **)argv, "api", "The render API"), mProject(nullptr), mIds() {
+AssimpViewerApp::AssimpViewerApp(int argc, char *argv[]) : 
+        AppBase(argc, (const char **)argv, "api", "The render API"),
+//        mProject(nullptr), 
+        mWindowsRect(), 
+        mIds() {
     // empty
 }
 
@@ -81,26 +84,26 @@ void AssimpViewerApp::loadAsset(const IO::Uri &modelLoc) {
         return;
     }
 
-    Rect2ui windowsRect;
-    rootWindow->getWindowsRect(windowsRect);
-    //World *world = getStage()->getActiveWorld(0);
-    if (mProject == nullptr) {
+//    Rect2ui windowsRect;
+    rootWindow->getWindowsRect(mWindowsRect);
+    /* if (mProject == nullptr) {
         mProject = createProject(modelLoc.getAbsPath());
-    }
+    }*/
     Entity *camEntity = new Entity(std::string("camera_1"), *getIdContainer(), world);
     Camera *camera = (Camera *)camEntity->createComponent(ComponentType::CameraComponentType);
     world->setActiveCamera(camera);
     mSceneData.mCamera = camera;
-    mSceneData.mCamera->setProjectionParameters(60.f, (f32)windowsRect.width, (f32)windowsRect.height, 0.01f, 1000.f);
+    mSceneData.mCamera->setProjectionParameters(
+        60.f, (f32)mWindowsRect.width, (f32)mWindowsRect.height, 0.01f, 1000.f);
 
     world->addEntity(entity);
     mSceneData.mCamera->observeBoundingBox(entity->getAABB());
     mSceneData.m_modelNode = entity->getNode();
 
     String asset = modelLoc.getResource();
-    mProject->addAsset(asset);
+    //mProject->addAsset(asset);
     String title;
-    createTitleString(mProject->getProjectName(), title);
+    createTitleString(modelLoc.getResource(), title);
     rootWindow->setWindowsTitle(title);
 }
 
