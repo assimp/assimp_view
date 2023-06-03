@@ -1,7 +1,6 @@
 #pragma once
 
 #include "AssimpViewerApp.h"
-//#include "Actions/ImportAction.h"
 
 #include <osre/RenderBackend/MeshBuilder.h>
 #include <osre/App/Stage.h>
@@ -21,17 +20,6 @@ using namespace OSRE::Common;
 
 static constexpr char Tag[] = "OsreEdApp";
 
-Entity *importAssimp(const std::string &path, Ids *ids, World *world) {
-    IO::Uri loc(path);
-    AssimpWrapper assimpWrapper(*ids, world);
-    if (!assimpWrapper.importAsset(loc, 0)) {
-        return nullptr;
-    }
-    
-    return assimpWrapper.getEntity();
-}
-
-
 static void createTitleString(const String &projectName, String &titleString) {
     titleString.clear();
     titleString += "AssimpViewer!";
@@ -48,10 +36,15 @@ static Project *createProject(const String &name) {
 }
 
 AssimpViewerApp::AssimpViewerApp(int argc, char *argv[]) : 
-        AppBase(argc, (const char **)argv, "api", "The render API"),
-//        mProject(nullptr), 
+        AppBase(argc, (const char **)argv, "api", "The render API"), 
+        mTitle(),
         mWindowsRect(), 
-        mIds() {
+        mIds(),
+        mTransformMatrix(),
+        mEntity(nullptr),
+        mAssimpWrapper(nullptr),
+        mKeyboardTransCtrl(nullptr),
+        mSceneData() {
     // empty
 }
 
@@ -74,21 +67,19 @@ void AssimpViewerApp::loadAsset(const IO::Uri &modelLoc) {
     }
 
     World *world = getStage()->getActiveWorld(0);
-    Entity *entity = importAssimp(modelLoc.getAbsPath(), getIdContainer(), world);
+    Entity *entity = nullptr;
+    const aiScene *scene = importAssimp(modelLoc.getAbsPath(), getIdContainer(), world, &entity);    
     if (entity == nullptr) {
         return;
     }
+    mSceneData.mScene = scene;
 
     RenderBackendService *rbSrv = ServiceProvider::getService<RenderBackendService>(ServiceType::RenderService);
     if (nullptr == rbSrv) {
         return;
     }
 
-//    Rect2ui windowsRect;
     rootWindow->getWindowsRect(mWindowsRect);
-    /* if (mProject == nullptr) {
-        mProject = createProject(modelLoc.getAbsPath());
-    }*/
     Entity *camEntity = new Entity(std::string("camera_1"), *getIdContainer(), world);
     Camera *camera = (Camera *)camEntity->createComponent(ComponentType::CameraComponentType);
     world->setActiveCamera(camera);
@@ -100,11 +91,26 @@ void AssimpViewerApp::loadAsset(const IO::Uri &modelLoc) {
     mSceneData.mCamera->observeBoundingBox(entity->getAABB());
     mSceneData.m_modelNode = entity->getNode();
 
-    String asset = modelLoc.getResource();
-    //mProject->addAsset(asset);
-    String title;
-    createTitleString(modelLoc.getResource(), title);
-    rootWindow->setWindowsTitle(title);
+    createTitleString(modelLoc.getResource(), mTitle);
+    rootWindow->setWindowsTitle(mTitle);
+}
+
+void AssimpViewerApp::clearScene() {
+    delete mAssimpWrapper;
+    mAssimpWrapper = nullptr;
+}
+
+const aiScene *AssimpViewerApp::importAssimp(const std::string &path, Ids *ids, World *world, Entity **entity) {
+    IO::Uri loc(path);
+    if (mAssimpWrapper != nullptr) {
+        clearScene();
+    }
+    mAssimpWrapper = new AssimpWrapper(*ids, world);
+    if (!mAssimpWrapper->importAsset(loc, 0)) {
+        return nullptr;
+    }
+    *entity = mAssimpWrapper->getEntity();
+    return mAssimpWrapper->getScene();
 }
 
 bool AssimpViewerApp::onCreate() {
@@ -118,7 +124,7 @@ bool AssimpViewerApp::onCreate() {
     Camera *camera = setupCamera(world);
 
     MeshBuilder meshBuilder;
-    RenderBackend::Mesh *mesh = meshBuilder.createCube(VertexType::ColorVertex, .5, .5, .5, BufferAccessType::ReadOnly).getMesh();
+    /* RenderBackend::Mesh *mesh = meshBuilder.createCube(VertexType::ColorVertex, .5, .5, .5, BufferAccessType::ReadOnly).getMesh();
     if (nullptr != mesh) {
         RenderComponent *rc = (RenderComponent *)mEntity->getComponent(ComponentType::RenderComponentType);
         rc->addStaticMesh(mesh);
@@ -126,7 +132,7 @@ bool AssimpViewerApp::onCreate() {
         Time dt;
         world->update(dt);
         camera->observeBoundingBox(mEntity->getAABB());
-    }
+    }*/
     mKeyboardTransCtrl = AppBase::getTransformController(mTransformMatrix);
 
     osre_info(Tag, "Creation finished.");

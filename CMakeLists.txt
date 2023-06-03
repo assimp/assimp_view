@@ -101,3 +101,4 @@ IF(WIN32)
 ELSE()
   target_link_libraries( assimp_view osre SDL2::SDL2 )
 ENDIF(WIN32)
+

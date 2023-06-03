@@ -32,6 +32,7 @@ namespace Editor {
 struct SceneData {
     String Name;
     String ProjectName;
+    const aiScene *mScene;
     App::TransformComponent::NodePtr m_modelNode;
     App::Camera *mCamera;
 
@@ -42,6 +43,7 @@ struct SceneData {
 inline SceneData::SceneData() :
         Name(),
         ProjectName("none"),
+        mScene(nullptr),
         m_modelNode(),
         mCamera(nullptr) {
     // empty

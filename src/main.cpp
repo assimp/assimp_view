@@ -25,7 +25,10 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <stdio.h>
 #include <SDL.h>
 #include <SDL_opengl.h>
+#include <SDL_syswm.h>
 #include <iostream>
+
+#include "Engine/Platform/win32/Win32Window.h"
 
 #define main main
 
@@ -43,7 +46,10 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #include "AssimpViewerApp.h"
 
+#include <assimp/scene.h>
+
 using namespace OSRE;
+using namespace Assimp;
 using namespace OSRE::RenderBackend;
 using namespace OSRE::App;
 using namespace OSRE::Platform;
@@ -51,16 +57,57 @@ using namespace OSRE::Editor;
 
 static constexpr c8 Tag[] = "AssimpViewerApp";
 
+void addChildren(aiNode *node) {
+    if (node == nullptr) {
+        return;
+    }
+
+    bool open = false;
+    if (ImGui::TreeNode("aiNode")) {
+        open = true;
+        ImGui::Text(node->mName.C_Str());
+        for (size_t i = 0; i < node->mNumChildren; ++i) {
+            aiNode *currentNode = node->mChildren[i];
+            if (currentNode == nullptr) {
+                continue;
+            }
+
+            addChildren(currentNode);
+        }
+    }
+
+    if (open) {
+        ImGui::TreePop();
+    }
+}
+
+void setMenu(bool &newImporter, bool &importAsset, bool &done) {
+    if (ImGui::BeginMenuBar()) {
+        if (ImGui::BeginMenu("File")) {
+            ImGui::MenuItem("New", nullptr, &newImporter);
+            ImGui::MenuItem("Import", nullptr, &importAsset);
+            ImGui::MenuItem("Quit", nullptr, &done);
+            ImGui::EndMenu();
+        }
+        ImGui::EndMenuBar();
+    }
+}
+
+void setSceneTree(const aiScene *scene) {
+    if (scene == nullptr) {
+        return;
+    }
+
+    if (scene->mRootNode == nullptr) {
+        return;
+    }
+
+    aiNode *node = scene->mRootNode;
+    addChildren(node);
+}
 
 int main(int argc, char *argv[]) {
     std::cout << "Editor version 0.1\n";
-
-    AssimpViewerApp assimpViewerApp(argc, argv);
-    if (!assimpViewerApp.initWindow(100, 100, 1024, 768, "test", false, true, App::RenderBackendType::OpenGLRenderBackend)) {
-        return -1;
-    }
-
-    assimpViewerApp.create(nullptr);
     
     // Setup SDL
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0) {
@@ -99,10 +146,28 @@ int main(int argc, char *argv[]) {
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
     SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
-    SDL_Window *window = SDL_CreateWindow("Dear ImGui SDL2+OpenGL3 example", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 400, 400, window_flags);
+    SDL_Window *window = SDL_CreateWindow("Assimp Viewer", 20, 20, 1280, 1024, window_flags);
     SDL_GLContext gl_context = SDL_GL_CreateContext(window);
     SDL_GL_MakeCurrent(window, gl_context);
     SDL_GL_SetSwapInterval(1); // Enable vsync
+
+    SDL_SysWMinfo wmInfo;
+    SDL_VERSION(&wmInfo.version);
+    SDL_GetWindowWMInfo(window, &wmInfo);
+    HWND hwnd = wmInfo.info.win.window;
+
+    AssimpViewerApp assimpViewerApp(argc, argv);
+    if (!assimpViewerApp.initWindow(400, 25, 800, 600, "test", false, true, App::RenderBackendType::OpenGLRenderBackend)) {
+        return -1;
+    }
+
+    assimpViewerApp.create(nullptr);
+
+    AbstractWindow *w = assimpViewerApp.getRootWindow();
+    if (w != nullptr) {
+        Win32Window *win32Win = (Win32Window *)w;
+        win32Win->setParent(hwnd);
+    }
 
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
@@ -138,22 +203,24 @@ int main(int argc, char *argv[]) {
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplSDL2_NewFrame();
         ImGui::NewFrame();
-
+        ImGuiWindowFlags window_flags = 0;
+        window_flags |= ImGuiWindowFlags_MenuBar;
         // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
         {
             static int counter = 0;
+            bool importAsset = false;
+            bool newImporter = false;
+            bool p_open = true;
+            ImGui::Begin("OSRE-Viewer", &p_open, window_flags); // Create a window called "Hello, world!" and append into it.
+            setMenu(newImporter, importAsset, done);
 
-            ImGui::Begin("OSRE-Viewer"); // Create a window called "Hello, world!" and append into it.
-            ImGui::Text("World"); // Display some text (you can use a format strings too)
-            if (ImGui::Button("Import")) {
+            if (importAsset) {
                 IO::Uri modelLoc;
                 PlatformOperations::getFileOpenDialog("Select asset for import", "*", modelLoc);
                 if (modelLoc.isValid()) {
                     assimpViewerApp.loadAsset(modelLoc);
                 }
             }
-            ImGui::SameLine();
-            ImGui::Text("counter = %d", counter);
 
             ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
             if (ImGui::TreeNode("Scene")) {
@@ -162,10 +229,8 @@ int main(int argc, char *argv[]) {
                     World *world = stage->getActiveWorld(0);
                 }
 
-                if (ImGui::TreeNode("aiNode")) {
-                    ImGui::Text("NodeName");
-                    ImGui::TreePop();
-                }
+                const aiScene *scene = assimpViewerApp.getScene();
+                setSceneTree(scene);
                 ImGui::TreePop();
             }
             ImGui::End();

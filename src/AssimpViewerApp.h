@@ -12,6 +12,10 @@
 #include <osre/RenderBackend/RenderBackendService.h>
 
 namespace OSRE {
+namespace App {
+class AssimpWrapper;
+}
+
 namespace Editor {
 
 class AssimpViewerApp : public App::AppBase {
@@ -22,16 +26,24 @@ public:
     bool onCreate() override;
     void onUpdate() override;
     void loadAsset(const IO::Uri &modelLoc);
+    const aiScene *getScene() const;
+    void clearScene();
+    const aiScene *importAssimp(const std::string &path, Common::Ids *ids, App::World *world, App::Entity * *entity);
 
 private:
-    //App::Project *mProject;
+    String mTitle;
     Rect2ui mWindowsRect;
     Common::Ids mIds;
     RenderBackend::TransformMatrixBlock mTransformMatrix;
     App::Entity *mEntity;
+    App::AssimpWrapper *mAssimpWrapper;
     Animation::AnimationControllerBase *mKeyboardTransCtrl;
     SceneData mSceneData;
 };
+
+inline const aiScene *AssimpViewerApp::getScene() const {
+    return mSceneData.mScene;
+}
 
 } // namespace Editor
 } // namespace OSRE
