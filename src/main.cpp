@@ -1,7 +1,7 @@
 /*-----------------------------------------------------------------------------------------------
 The MIT License (MIT)
 
-Copyright (c) 2015-2023 OSRE ( Open Source Render Engine ) by Kim Kulling
+Copyright (c) 2015-2023 assimp_view by Kim Kulling
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in
@@ -30,6 +30,10 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #include "Engine/Platform/win32/Win32Window.h"
 
+#ifdef main
+#undef main
+#endif
+
 #define main main
 
 #include <osre/App/App.h>
@@ -53,7 +57,8 @@ using namespace Assimp;
 using namespace OSRE::RenderBackend;
 using namespace OSRE::App;
 using namespace OSRE::Platform;
-using namespace OSRE::Editor;
+
+using namespace AssimpViewer;
 
 static constexpr c8 Tag[] = "AssimpViewerApp";
 
@@ -106,10 +111,52 @@ void setSceneTree(const aiScene *scene) {
     addChildren(node);
 }
 
-int main(int argc, char *argv[]) {
-    std::cout << "Editor version 0.1\n";
-    
-    // Setup SDL
+struct PlatformHandle {
+#ifdef __APPLE__
+#elif __linux__
+#elif _WIN32
+    HWND hwnd;
+    HWND getHandle() const {
+        return hwnd;
+    }
+#endif
+};
+
+struct SDLContext {
+    SDL_Window *window;
+    SDL_GLContext gl_context;
+    SDL_SysWMinfo wmInfo;
+    const char *glsl_version;
+    PlatformHandle handle;
+};
+
+using errcode_t = int32_t;
+
+struct Logger {
+    static Logger sInstance;
+    static Logger &getInstance() {
+        return sInstance;
+    }
+
+    void logInfo(const std::string &msg) {
+        std::cout << "*Inf* : "
+                  << msg << "\n";
+    }
+
+    void logWarn(const std::string &msg) {
+        std::cerr << "*Warn*: "
+                  << msg << "\n";
+    }
+
+    void logError(const std::string &msg) {
+        std::cerr << "*Err* : "
+                  << msg << "\n";
+    }
+};
+
+Logger Logger::sInstance;
+
+errcode_t initSDL(SDLContext &ctx) {
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0) {
         printf("Error: %s\n", SDL_GetError());
         return -1;
@@ -117,11 +164,11 @@ int main(int argc, char *argv[]) {
 
     // Decide GL+GLSL versions
     // GL 3.0 + GLSL 130
-    const char *glsl_version = "#version 130";
+    ctx.glsl_version = "#version 130";
 
 #ifdef __APPLE__
     // GL 3.2 Core + GLSL 150
-    glsl_version = "#version 150";
+    ctx.glsl_version = "#version 150";
     SDL_GL_SetAttribute( // required on Mac OS
             SDL_GL_CONTEXT_FLAGS,
             SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
@@ -129,13 +176,13 @@ int main(int argc, char *argv[]) {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
 #elif __linux__
     // GL 3.2 Core + GLSL 150
-    glsl_version = "#version 150";
+    ctx.glsl_version = "#version 150";
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
 #elif _WIN32
     // GL 3.0 + GLSL 130
-    glsl_version = "#version 130";
+    ctx.glsl_version = "#version 130";
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
@@ -146,28 +193,59 @@ int main(int argc, char *argv[]) {
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
     SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
-    SDL_Window *window = SDL_CreateWindow("Assimp Viewer", 20, 20, 1280, 1024, window_flags);
-    SDL_GLContext gl_context = SDL_GL_CreateContext(window);
-    SDL_GL_MakeCurrent(window, gl_context);
+    ctx.window = SDL_CreateWindow("Assimp Viewer", 20, 20, 1280, 1024, window_flags);
+
+    ctx.gl_context = SDL_GL_CreateContext(ctx.window);
+    SDL_GL_MakeCurrent(ctx.window, ctx.gl_context);
     SDL_GL_SetSwapInterval(1); // Enable vsync
 
-    SDL_SysWMinfo wmInfo;
-    SDL_VERSION(&wmInfo.version);
-    SDL_GetWindowWMInfo(window, &wmInfo);
-    HWND hwnd = wmInfo.info.win.window;
+    
+    SDL_VERSION(&ctx.wmInfo.version);
+    SDL_GetWindowWMInfo(ctx.window, &ctx.wmInfo);
+    ctx.handle.hwnd = ctx.wmInfo.info.win.window;
 
-    AssimpViewerApp assimpViewerApp(argc, argv);
-    if (!assimpViewerApp.initWindow(400, 25, 800, 600, "test", false, true, App::RenderBackendType::OpenGLRenderBackend)) {
+    return 0;
+}
+
+
+errcode_t releaseSDL(SDLContext &ctx) {
+    SDL_GL_DeleteContext(ctx.gl_context);
+    SDL_DestroyWindow(ctx.window);
+    SDL_Quit();
+
+    return 0;
+}
+
+int main(int argc, char *argv[]) {
+    std::cout << "Editor version 0.1\n";
+    
+    // Setup SDL
+    SDLContext ctx;
+    if (initSDL(ctx) == -1) {
+        Logger::getInstance().logError("Cannot initialize SDL.");
         return -1;
     }
 
-    assimpViewerApp.create(nullptr);
+    AssimpViewerApp assimpViewerApp(argc, argv);
+    if (!assimpViewerApp.initWindow(400, 25, 800, 600, "test", false, true, App::RenderBackendType::OpenGLRenderBackend)) {
+        Logger::getInstance().logError("Cannot initialize window.");
+        return -1;
+    }
+    if (ctx.window == nullptr) {
+        Logger::getInstance().logError("Window is nullptr.");
+        return -1;
+    }
+    
+    assimpViewerApp.setWindow(ctx.window);
 
     AbstractWindow *w = assimpViewerApp.getRootWindow();
-    if (w != nullptr) {
-        Win32Window *win32Win = (Win32Window *)w;
-        win32Win->setParent(hwnd);
+    if (w == nullptr) {
+        Logger::getInstance().logError("OSRE root window is nullptr.");
+        return -1;
     }
+
+    Win32Window *win32Win = (Win32Window *)w;
+    win32Win->setParent(ctx.handle.hwnd);
 
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
@@ -180,12 +258,12 @@ int main(int argc, char *argv[]) {
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
 
-    // Setup Platform/Renderer backends
-    ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
-    ImGui_ImplOpenGL3_Init(glsl_version);
+    // Setup Platform/Renderer back end's
+    ImGui_ImplSDL2_InitForOpenGL(ctx.window, ctx.gl_context);
+    ImGui_ImplOpenGL3_Init(ctx.glsl_version);
 
     // Our state
-    ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+    const ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
     // Main loop
     bool done = false;
@@ -193,10 +271,36 @@ int main(int argc, char *argv[]) {
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
             ImGui_ImplSDL2_ProcessEvent(&event);
-            if (event.type == SDL_QUIT)
+            if (event.type == SDL_QUIT) {
                 done = true;
-            if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE && event.window.windowID == SDL_GetWindowID(window))
-                done = true;
+            }
+
+            if (event.type == SDL_WINDOWEVENT) {
+                if (event.window.event == SDL_WINDOWEVENT_CLOSE && event.window.windowID == SDL_GetWindowID(ctx.window)) {
+                    done = true;
+                }
+                WindowsProperties *p = w->getProperties();
+                switch (event.window.event) {
+                    case SDL_WINDOWEVENT_RESIZED:
+                        if (p != nullptr) {
+                            const uint32_t width = event.window.data1;
+                            const uint32_t height = event.window.data2;
+                            w->resize(p->m_x, p->m_y, width, height);
+                        }
+                        break;
+
+                    case SDL_WINDOWEVENT_SIZE_CHANGED:
+                        if (p != nullptr) {
+                            const uint32_t width = event.window.data1;
+                            const uint32_t height = event.window.data2;
+                            w->resize(p->m_x, p->m_y, width, height);
+                        }
+                        break;
+
+                    default:
+                        break;
+                }
+            } 
         }
 
         // Start the Dear ImGui frame
@@ -205,13 +309,12 @@ int main(int argc, char *argv[]) {
         ImGui::NewFrame();
         ImGuiWindowFlags window_flags = 0;
         window_flags |= ImGuiWindowFlags_MenuBar;
-        // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
         {
             static int counter = 0;
             bool importAsset = false;
             bool newImporter = false;
             bool p_open = true;
-            ImGui::Begin("OSRE-Viewer", &p_open, window_flags); // Create a window called "Hello, world!" and append into it.
+            ImGui::Begin("OSRE-Viewer", &p_open, window_flags); 
             setMenu(newImporter, importAsset, done);
 
             if (importAsset) {
@@ -242,24 +345,23 @@ int main(int argc, char *argv[]) {
         glClearColor(clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w);
         glClear(GL_COLOR_BUFFER_BIT);
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-        SDL_GL_SwapWindow(window);
+        SDL_GL_SwapWindow(ctx.window);
 
         assimpViewerApp.handleEvents();
         assimpViewerApp.update();
         assimpViewerApp.requestNextFrame();
     }
-#ifdef __EMSCRIPTEN__
-    EMSCRIPTEN_MAINLOOP_END;
-#endif
 
     // Cleanup
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplSDL2_Shutdown();
     ImGui::DestroyContext();
 
-    SDL_GL_DeleteContext(gl_context);
-    SDL_DestroyWindow(window);
-    SDL_Quit();
+    if (releaseSDL(ctx) == -1) {
+        std::cerr << "*Err*: "
+                  << "Cannot release SDL.";
+        return -1;
+    }
 
     return 0;
 }

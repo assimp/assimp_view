@@ -11,33 +11,38 @@
 #include <osre/RenderBackend/TransformMatrixBlock.h>
 #include <osre/RenderBackend/RenderBackendService.h>
 
+struct SDL_Window;
+
 namespace OSRE {
 namespace App {
 class AssimpWrapper;
 }
+} // namespace OSRE
 
-namespace Editor {
+namespace AssimpViewer {
 
-class AssimpViewerApp : public App::AppBase {
+class AssimpViewerApp : public OSRE::App::AppBase {
 public:
     AssimpViewerApp(int argc, char *argv[]);
     ~AssimpViewerApp() override = default;
-    App::Camera *setupCamera(App::World *world);
+    OSRE::App::Camera *setupCamera(OSRE::App::World *world);
+    void setWindow(SDL_Window *window);
     bool onCreate() override;
     void onUpdate() override;
-    void loadAsset(const IO::Uri &modelLoc);
+    void loadAsset(const OSRE::IO::Uri &modelLoc);
     const aiScene *getScene() const;
     void clearScene();
-    const aiScene *importAssimp(const std::string &path, Common::Ids *ids, App::World *world, App::Entity * *entity);
+    const aiScene *importAssimp(const std::string &path, OSRE::Common::Ids *ids, OSRE::App::World *world, OSRE::App::Entity **entity);
 
 private:
-    String mTitle;
-    Rect2ui mWindowsRect;
-    Common::Ids mIds;
-    RenderBackend::TransformMatrixBlock mTransformMatrix;
-    App::Entity *mEntity;
-    App::AssimpWrapper *mAssimpWrapper;
-    Animation::AnimationControllerBase *mKeyboardTransCtrl;
+    std::string mTitle;
+    SDL_Window *mWindow;
+    OSRE::Rect2ui mWindowsRect;
+    OSRE::Common::Ids mIds;
+    OSRE::RenderBackend::TransformMatrixBlock mTransformMatrix;
+    OSRE::App::Entity *mEntity;
+    OSRE::App::AssimpWrapper *mAssimpWrapper;
+    OSRE::Animation::AnimationControllerBase *mKeyboardTransCtrl;
     SceneData mSceneData;
 };
 
@@ -45,5 +50,4 @@ inline const aiScene *AssimpViewerApp::getScene() const {
     return mSceneData.mScene;
 }
 
-} // namespace Editor
-} // namespace OSRE
+} // namespace AssimpViewer

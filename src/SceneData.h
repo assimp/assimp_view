@@ -26,28 +26,24 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <osre/App/TransformComponent.h>
 #include <osre/App/World.h>
 
-namespace OSRE {
-namespace Editor {
+namespace AssimpViewer {
 
 struct SceneData {
-    String Name;
-    String ProjectName;
+    std::string mAssetName;
     const aiScene *mScene;
-    App::TransformComponent::NodePtr m_modelNode;
-    App::Camera *mCamera;
+    OSRE::App::TransformComponent::NodePtr mModelNode;
+    OSRE::App::Camera *mCamera;
 
     SceneData();
     ~SceneData() = default;
 };
 
 inline SceneData::SceneData() :
-        Name(),
-        ProjectName("none"),
+        mAssetName("none"),
         mScene(nullptr),
-        m_modelNode(),
+        mModelNode(),
         mCamera(nullptr) {
     // empty
 }
 
-} // namespace Editor
-} // namespace OSRE
+} // namespace AssimpViewer

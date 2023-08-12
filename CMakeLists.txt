@@ -74,7 +74,8 @@ set(assimpview_imgui_src
 )
 
 set(assimpview_main_src
-    
+    src/MainRenderView.cpp
+    src/MainRenderView.h
     src/AssimpViewerApp.cpp
     src/AssimpViewerApp.h
     src/SceneData.h

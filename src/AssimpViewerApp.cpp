@@ -1,6 +1,7 @@
 #pragma once
 
 #include "AssimpViewerApp.h"
+#include "MainRenderView.h"
 
 #include <osre/RenderBackend/MeshBuilder.h>
 #include <osre/App/Stage.h>
@@ -11,21 +12,23 @@
 #include <osre/App/Entity.h>
 #include <osre/App/AssimpWrapper.h>
 
-namespace OSRE {
-namespace Editor {
+#include <SDL.h>
 
+namespace AssimpViewer {
+
+using namespace OSRE;
 using namespace OSRE::App;
 using namespace OSRE::RenderBackend;
 using namespace OSRE::Common;
 
 static constexpr char Tag[] = "OsreEdApp";
 
-static void createTitleString(const String &projectName, String &titleString) {
+static void createTitleString(const String &assetName, String &titleString) {
     titleString.clear();
     titleString += "AssimpViewer!";
 
-    titleString += " Project: ";
-    titleString += projectName;
+    titleString += " Asset: ";
+    titleString += assetName;
 }
 
 static Project *createProject(const String &name) {
@@ -38,6 +41,7 @@ static Project *createProject(const String &name) {
 AssimpViewerApp::AssimpViewerApp(int argc, char *argv[]) : 
         AppBase(argc, (const char **)argv, "api", "The render API"), 
         mTitle(),
+        mWindow(nullptr),
         mWindowsRect(), 
         mIds(),
         mTransformMatrix(),
@@ -49,15 +53,26 @@ AssimpViewerApp::AssimpViewerApp(int argc, char *argv[]) :
 }
 
 Camera *AssimpViewerApp::setupCamera(World *world) {
-    Entity *camEntity = new Entity("camera", *getIdContainer(), world);
-    world->addEntity(camEntity);
-    Camera *camera = (Camera *)camEntity->createComponent(ComponentType::CameraComponentType);
-    world->setActiveCamera(camera);
-    ui32 w, h;
+    ui32 w{ 0 }, h{ 0 };
+    Entity *camEntity{ nullptr };
+    camEntity = world->getEntityByName("camera");
+    Camera *camera{ nullptr };
+    if (camEntity == nullptr) {
+        camEntity = new Entity("camera", *getIdContainer(), world);
+        world->addEntity(camEntity);
+        camera = (Camera *)camEntity->createComponent(ComponentType::CameraComponentType);
+        world->setActiveCamera(camera);
+    } else {
+        camera = (Camera *)camEntity->getComponent(ComponentType::CameraComponentType);
+    }
     AppBase::getResolution(w, h);
     camera->setProjectionParameters(60.f, (f32)w, (f32)h, 0.001f, 1000.f);
 
     return camera;
+}
+
+void AssimpViewerApp::setWindow( SDL_Window *window ) {
+    mWindow = window;
 }
 
 void AssimpViewerApp::loadAsset(const IO::Uri &modelLoc) {
@@ -89,10 +104,12 @@ void AssimpViewerApp::loadAsset(const IO::Uri &modelLoc) {
 
     world->addEntity(entity);
     mSceneData.mCamera->observeBoundingBox(entity->getAABB());
-    mSceneData.m_modelNode = entity->getNode();
+    mSceneData.mModelNode = entity->getNode();
 
     createTitleString(modelLoc.getResource(), mTitle);
-    rootWindow->setWindowsTitle(mTitle);
+    if (mWindow != nullptr) {
+        SDL_SetWindowTitle(mWindow, mTitle.c_str());
+    }
 }
 
 void AssimpViewerApp::clearScene() {
@@ -118,21 +135,22 @@ bool AssimpViewerApp::onCreate() {
         return false;
     }
 
-    AppBase::setWindowsTitle("Hello-World sample! Rotate with keyboard: w, a, s, d, scroll with q, e");
     World *world = getStage()->addActiveWorld("hello_world");
+    if (world == nullptr) {
+        return false;
+    }
+
     mEntity = new Entity("entity", *AppBase::getIdContainer(), world);
     Camera *camera = setupCamera(world);
-
-    MeshBuilder meshBuilder;
-    /* RenderBackend::Mesh *mesh = meshBuilder.createCube(VertexType::ColorVertex, .5, .5, .5, BufferAccessType::ReadOnly).getMesh();
-    if (nullptr != mesh) {
+    Mesh *coordAxis = MainRenderView::createCoordAxis(100u);
+    if (nullptr != coordAxis) {
         RenderComponent *rc = (RenderComponent *)mEntity->getComponent(ComponentType::RenderComponentType);
-        rc->addStaticMesh(mesh);
+        rc->addStaticMesh(coordAxis);
 
         Time dt;
         world->update(dt);
         camera->observeBoundingBox(mEntity->getAABB());
-    }*/
+    }
     mKeyboardTransCtrl = AppBase::getTransformController(mTransformMatrix);
 
     osre_info(Tag, "Creation finished.");
@@ -156,5 +174,4 @@ void AssimpViewerApp::onUpdate() {
     AppBase::onUpdate();
 }
 
-} // namespace Editor
-} // namespace OSRE
+} // namespace AssimpViewer
