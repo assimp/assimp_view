@@ -156,7 +156,7 @@ struct Logger {
 
 Logger Logger::sInstance;
 
-errcode_t initSDL(SDLContext &ctx) {
+errcode_t initSDL(SDLContext &ctx, uint32_t x, uint32_t y, uint32_t w, uint32_t h) {
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0) {
         printf("Error: %s\n", SDL_GetError());
         return -1;
@@ -193,7 +193,7 @@ errcode_t initSDL(SDLContext &ctx) {
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
     SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
-    ctx.window = SDL_CreateWindow("Assimp Viewer", 20, 20, 1280, 1024, window_flags);
+    ctx.window = SDL_CreateWindow("Assimp Viewer", x, y, w, h, window_flags);
 
     ctx.gl_context = SDL_GL_CreateContext(ctx.window);
     SDL_GL_MakeCurrent(ctx.window, ctx.gl_context);
@@ -221,7 +221,7 @@ int main(int argc, char *argv[]) {
     
     // Setup SDL
     SDLContext ctx;
-    if (initSDL(ctx) == -1) {
+    if (initSDL(ctx, 20, 20, 1280, 1024) == -1) {
         Logger::getInstance().logError("Cannot initialize SDL.");
         return -1;
     }
