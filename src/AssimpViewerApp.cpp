@@ -118,14 +118,20 @@ void AssimpViewerApp::clearScene() {
 }
 
 const aiScene *AssimpViewerApp::importAssimp(const std::string &path, Ids *ids, World *world, Entity **entity) {
+    if (ids == nullptr) {
+        return nullptr;
+    }
+
     IO::Uri loc(path);
     if (mAssimpWrapper != nullptr) {
         clearScene();
     }
+
     mAssimpWrapper = new AssimpWrapper(*ids, world);
     if (!mAssimpWrapper->importAsset(loc, 0)) {
         return nullptr;
     }
+
     *entity = mAssimpWrapper->getEntity();
     return mAssimpWrapper->getScene();
 }
@@ -164,7 +170,7 @@ void AssimpViewerApp::onUpdate() {
 
     RenderBackendService *rbSrv = ServiceProvider::getService<RenderBackendService>(ServiceType::RenderService);
     rbSrv->beginPass(RenderPass::getPassNameById(RenderPassId));
-    rbSrv->beginRenderBatch("b1");
+    rbSrv->beginRenderBatch("b.1");
 
     rbSrv->setMatrix(MatrixType::Model, mTransformMatrix.m_model);
 

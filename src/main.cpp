@@ -68,9 +68,13 @@ void addChildren(aiNode *node) {
     }
 
     bool open = false;
-    if (ImGui::TreeNode("aiNode")) {
+    
+    if (ImGui::TreeNode(node->mName.C_Str())) {
         open = true;
-        ImGui::Text(node->mName.C_Str());
+        ImGui::Text("Type: aiNode");
+        const std::string numMeshes = "Number of meshes: " + std::to_string(node->mNumMeshes);
+        ImGui::Text(numMeshes.c_str());
+
         for (size_t i = 0; i < node->mNumChildren; ++i) {
             aiNode *currentNode = node->mChildren[i];
             if (currentNode == nullptr) {
@@ -86,12 +90,18 @@ void addChildren(aiNode *node) {
     }
 }
 
-void setMenu(bool &newImporter, bool &importAsset, bool &done) {
+void setMenu(bool &newImporter, bool &importAsset, bool &exportAsset, bool &done, bool &info) {
     if (ImGui::BeginMenuBar()) {
         if (ImGui::BeginMenu("File")) {
             ImGui::MenuItem("New", nullptr, &newImporter);
             ImGui::MenuItem("Import", nullptr, &importAsset);
+            ImGui::MenuItem("Export", nullptr, &exportAsset);
             ImGui::MenuItem("Quit", nullptr, &done);
+            ImGui::EndMenu();
+        }
+
+        if (ImGui::BeginMenu("Info")) {
+            ImGui::MenuItem("Info", nullptr, &info);
             ImGui::EndMenu();
         }
         ImGui::EndMenuBar();
@@ -207,7 +217,6 @@ errcode_t initSDL(SDLContext &ctx, uint32_t x, uint32_t y, uint32_t w, uint32_t 
     return 0;
 }
 
-
 errcode_t releaseSDL(SDLContext &ctx) {
     SDL_GL_DeleteContext(ctx.gl_context);
     SDL_DestroyWindow(ctx.window);
@@ -245,6 +254,10 @@ int main(int argc, char *argv[]) {
     }
 
     Win32Window *win32Win = (Win32Window *)w;
+    if (w == nullptr) {
+        return -1;
+    }
+
     win32Win->setParent(ctx.handle.hwnd);
 
     // Setup Dear ImGui context
@@ -312,10 +325,12 @@ int main(int argc, char *argv[]) {
         {
             static int counter = 0;
             bool importAsset = false;
+            bool exportAsset = false;
             bool newImporter = false;
             bool p_open = true;
+            bool info = false;
             ImGui::Begin("OSRE-Viewer", &p_open, window_flags); 
-            setMenu(newImporter, importAsset, done);
+            setMenu(newImporter, importAsset, exportAsset, done, info);
 
             if (importAsset) {
                 IO::Uri modelLoc;

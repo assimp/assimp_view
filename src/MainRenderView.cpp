@@ -49,6 +49,9 @@ MainRenderView::MainRenderView() :
 }
 
 MainRenderView::~MainRenderView() {
+    for (size_t i = 0; i < mEditorElements.size(); ++i) {
+        delete mEditorElements[i];
+    }
     mEditorElements.clear();
 }
 
@@ -188,6 +191,7 @@ static void drawJoint(Bone *currentBone) {
         return;
     }
 
+    
 }
 
 static void drawBone(Bone *currentBone) {
@@ -215,7 +219,7 @@ void MainRenderView::createEditorElements(RenderComponent *rc) {
 
 void MainRenderView::render( RenderBackendService *rbSrv, glm::mat4 model ) {
     rbSrv->beginPass(RenderPass::getPassNameById(RenderPassId));
-    rbSrv->beginRenderBatch("b1");
+    rbSrv->beginRenderBatch("b.1");
 
     rbSrv->setMatrix(MatrixType::Model, model);
 

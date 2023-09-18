@@ -1,24 +1,10 @@
 message(STATUS "The CMake version used is ${CMAKE_VERSION}")
 cmake_minimum_required(VERSION 3.5...${CMAKE_VERSION})
-include("cmake/HunterGate.cmake")
 
-# Todo: we need to solve this more cleaner
-IF (WIN32)
-    HunterGate(
-        URL "https://github.com/cpp-pm/hunter/archive/v0.24.0.tar.gz"
-        SHA1 "a3d7f4372b1dcd52faa6ff4a3bd5358e1d0e5efd"
-    )
-ELSE()
-    HunterGate(
-        URL "https://github.com/ruslo/hunter/archive/v0.23.111.tar.gz"
-        SHA1 "4189bbd869abe4eb69b5303d3f916c03d34dc154"
-    )
-ENDIF()
 
 project(assimp_view)
 
-hunter_add_package(SDL2)
-find_package(SDL2 REQUIRED)
+find_package(SDL2 CONFIG REQUIRED)
 
 set(osre_folder ${CMAKE_HOME_DIRECTORY}/contrib/osre/)
 set(osre_contrib_folder ${osre_folder}/contrib)
@@ -80,7 +66,6 @@ set(assimpview_main_src
     src/AssimpViewerApp.h
     src/SceneData.h
     src/main.cpp
-
 )
 
 set(OSRE_BUILD_PLAYER OFF CACHE BOOL "Disable osre player")
@@ -97,9 +82,7 @@ ADD_EXECUTABLE( assimp_view
     ${assimpview_main_src}
 )
 
-IF(WIN32)
-  target_link_libraries( assimp_view osre Ws2_32 SDL2::SDL2 )
-ELSE()
-  target_link_libraries( assimp_view osre SDL2::SDL2 )
-ENDIF(WIN32)
+target_link_libraries(assimp_view
+	PRIVATE SDL2::SDL2 osre 
+)
 
