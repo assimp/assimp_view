@@ -22,8 +22,6 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 -----------------------------------------------------------------------------------------------*/
 #pragma once
 
-//#include "Gui/UIElements.h"
-
 #include <osre/App/Entity.h>
 #include <osre/RenderBackend/RenderBackendService.h>
 #include <osre/RenderBackend/Mesh.h>
@@ -31,16 +29,17 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 namespace OSRE {
 
 namespace RenderBackend {
-class Mesh;
+    class Mesh;
 }
 
 namespace App {
-class RenderComponent;
+    class RenderComponent;
 }
 
 namespace Animation {
-struct Skeleton;
+    struct Skeleton;
 }
+
 } // namespace OSRE
 
 namespace AssimpViewer {
