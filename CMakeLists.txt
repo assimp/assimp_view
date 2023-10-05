@@ -25,6 +25,7 @@ INCLUDE_DIRECTORIES( BEFORE
     ${osre_contrib_folder}/assimp/include
     ${osre_contrib_folder}/assimp/contrib/zlib
     ${CMAKE_HOME_DIRECTORY}/contrib/osre/include
+    ${CMAKE_HOME_DIRECTORY}/contrib/osre/src/Engine
     ./
     ./src
     ${SDL2_INCLUDE_DIRS}
@@ -83,6 +84,6 @@ ADD_EXECUTABLE( assimp_view
 )
 
 target_link_libraries(assimp_view
-	PRIVATE SDL2::SDL2 osre 
+    PRIVATE SDL2::SDL2 osre 
 )
 
