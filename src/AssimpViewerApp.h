@@ -14,9 +14,9 @@
 struct SDL_Window;
 
 namespace OSRE {
-namespace App {
-class AssimpWrapper;
-}
+    namespace App {
+        class AssimpWrapper;
+    }
 } // namespace OSRE
 
 namespace AssimpViewer {
@@ -32,7 +32,8 @@ public:
     void loadAsset(const OSRE::IO::Uri &modelLoc);
     const aiScene *getScene() const;
     void clearScene();
-    const aiScene *importAssimp(const std::string &path, OSRE::Common::Ids *ids, OSRE::App::World *world, OSRE::App::Entity **entity);
+    const aiScene *importAssimp(const std::string &path, OSRE::App::World *world, OSRE::App::Entity **entity);
+    void renderFrame();
 
 private:
     std::string mTitle;

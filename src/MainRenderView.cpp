@@ -190,8 +190,6 @@ static void drawJoint(Bone *currentBone) {
     if (currentBone == nullptr) {
         return;
     }
-
-    
 }
 
 static void drawBone(Bone *currentBone) {
