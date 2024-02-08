@@ -255,6 +255,7 @@ struct ImGuiWrapper {
 
     ImGuiWrapper(SDLContext &ctx, ImGuiIO &io) :
             mCtx(ctx), mIo(io) {}
+    
     ~ImGuiWrapper() = default;
     
     errcode_t init() {
@@ -281,9 +282,6 @@ struct ImGuiWrapper {
         ImGui_ImplSDL2_NewFrame();
         ImGui::NewFrame();
         ImGuiWindowFlags window_flags = 0;
-        ImGui::Begin("Test");
-        ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / mIo.Framerate, mIo.Framerate);
-        ImGui::End();
         window_flags |= ImGuiWindowFlags_MenuBar;
         {
             static int counter = 0;
@@ -335,12 +333,8 @@ struct ImGuiWrapper {
         return 0;
     }
 };
-
     
-int main(int argc, char *argv[]) {
-    std::cout << "Editor version 0.1\n";
-    
-    // Setup SDL
+int main(int argc, char *argv[]) {    
     SDLContext ctx;
     if (initSDL(ctx, 20, 20, 1280, 1024) == -1) {
         Logger::getInstance().logError("Cannot initialize SDL.");
