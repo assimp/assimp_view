@@ -1,7 +1,7 @@
 /*-----------------------------------------------------------------------------------------------
 The MIT License (MIT)
 
-Copyright (c) 2015-2023 assimp_view by Kim Kulling
+Copyright (c) 2015-2024 assimp_view by Kim Kulling
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in
@@ -90,12 +90,11 @@ void addChildren(aiNode *node) {
     }
 }
 
-void setMenu(bool &newImporter, bool &importAsset, bool &exportAsset, bool &done, bool &info) {
+void setMenu(bool &newImporter, bool &importAsset, bool &done, bool &info) {
     if (ImGui::BeginMenuBar()) {
         if (ImGui::BeginMenu("File")) {
             ImGui::MenuItem("New", nullptr, &newImporter);
             ImGui::MenuItem("Import", nullptr, &importAsset);
-            ImGui::MenuItem("Export", nullptr, &exportAsset);
             ImGui::MenuItem("Quit", nullptr, &done);
             ImGui::EndMenu();
         }
@@ -172,6 +171,12 @@ errcode_t initSDL(SDLContext &ctx, uint32_t x, uint32_t y, uint32_t w, uint32_t 
         return -1;
     }
 
+    SDL_DisplayMode DM;
+    SDL_GetCurrentDisplayMode(0, &DM);
+    auto Width = DM.w;
+    auto Height = DM.h;
+
+
     // Decide GL+GLSL versions
     // GL 3.0 + GLSL 130
     ctx.glsl_version = "#version 130";
@@ -204,6 +209,10 @@ errcode_t initSDL(SDLContext &ctx, uint32_t x, uint32_t y, uint32_t w, uint32_t 
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
     SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
     ctx.window = SDL_CreateWindow("Assimp Viewer", x, y, w, h, window_flags);
+    if (ctx.window == nullptr) {
+        Logger::getInstance().logError("Window is nullptr.");
+        return -1;
+    }
 
     ctx.gl_context = SDL_GL_CreateContext(ctx.window);
     SDL_GL_MakeCurrent(ctx.window, ctx.gl_context);
@@ -212,7 +221,22 @@ errcode_t initSDL(SDLContext &ctx, uint32_t x, uint32_t y, uint32_t w, uint32_t 
     
     SDL_VERSION(&ctx.wmInfo.version);
     SDL_GetWindowWMInfo(ctx.window, &ctx.wmInfo);
+
+#ifdef __APPLE__
+#elif __linux__
+#elif _WIN32
     ctx.handle.hwnd = ctx.wmInfo.info.win.window;
+#endif
+
+    return 0;
+}
+
+errcode_t loadAssetCallback(AssimpViewerApp &assimpViewerApp) {
+    IO::Uri modelLoc;
+    PlatformOperations::getFileOpenDialog("Select asset for import", "*", modelLoc);
+    if (modelLoc.isValid()) {
+        assimpViewerApp.loadAsset(modelLoc);
+    }
 
     return 0;
 }
@@ -225,10 +249,92 @@ errcode_t releaseSDL(SDLContext &ctx) {
     return 0;
 }
 
-int main(int argc, char *argv[]) {
-    std::cout << "Editor version 0.1\n";
+struct ImGuiWrapper {
+    SDLContext &mCtx;
+    ImGuiIO &mIo;
+
+    ImGuiWrapper(SDLContext &ctx, ImGuiIO &io) :
+            mCtx(ctx), mIo(io) {}
     
-    // Setup SDL
+    ~ImGuiWrapper() = default;
+    
+    errcode_t init() {
+        // Setup Dear ImGui context
+        IMGUI_CHECKVERSION();
+        ImGui::CreateContext();
+        mIo = ImGui::GetIO();
+        
+        mIo.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
+        mIo.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad; // Enable Gamepad Controls
+
+        // Setup Dear ImGui style
+        ImGui::StyleColorsDark();
+
+        // Setup Platform/Renderer back end's
+        ImGui_ImplSDL2_InitForOpenGL(mCtx.window, mCtx.gl_context);
+        ImGui_ImplOpenGL3_Init(mCtx.glsl_version);
+
+        return 0;
+    }
+
+    errcode_t updateFrame(AssimpViewerApp &assimpViewerApp, bool &done) {
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplSDL2_NewFrame();
+        ImGui::NewFrame();
+        ImGuiWindowFlags window_flags = 0;
+        window_flags |= ImGuiWindowFlags_MenuBar;
+        {
+            static int counter = 0;
+            bool importAsset = false;
+            bool newImporter = false;
+            bool p_open = true;
+            bool info = false;
+            ImGui::Begin("OSRE-Viewer", &p_open, window_flags);
+            setMenu(newImporter, importAsset, done, info);
+
+            if (importAsset) {
+                loadAssetCallback(assimpViewerApp);
+            }
+
+            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / mIo.Framerate, mIo.Framerate);
+            if (ImGui::TreeNode("Scene")) {
+                App::Stage *stage = assimpViewerApp.getStage();
+                if (stage != nullptr) {
+                    World *world = stage->getActiveWorld(0);
+                }
+
+                const aiScene *scene = assimpViewerApp.getScene();
+                setSceneTree(scene);
+                ImGui::TreePop();
+            }
+            ImGui::End();
+        }
+
+        ImGui::Render();
+
+        return 0;
+    }
+
+    errcode_t renderFrame(const ImVec4 &clear_color) {
+        glViewport(0, 0, (int)mIo.DisplaySize.x, (int)mIo.DisplaySize.y);
+        glClearColor(clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w);
+        glClear(GL_COLOR_BUFFER_BIT);
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        SDL_GL_SwapWindow(mCtx.window);
+        
+        return 0;
+    }
+    // Cleanup
+    errcode_t release() {
+        ImGui_ImplOpenGL3_Shutdown();
+        ImGui_ImplSDL2_Shutdown();
+        ImGui::DestroyContext();
+        
+        return 0;
+    }
+};
+    
+int main(int argc, char *argv[]) {    
     SDLContext ctx;
     if (initSDL(ctx, 20, 20, 1280, 1024) == -1) {
         Logger::getInstance().logError("Cannot initialize SDL.");
@@ -236,17 +342,12 @@ int main(int argc, char *argv[]) {
     }
 
     AssimpViewerApp assimpViewerApp(argc, argv);
-    if (!assimpViewerApp.initWindow(400, 25, 800, 600, "test", false, true, App::RenderBackendType::OpenGLRenderBackend)) {
+    if (!assimpViewerApp.initWindow(400, 25, 800, 800, "test", false, true, App::RenderBackendType::OpenGLRenderBackend)) {
         Logger::getInstance().logError("Cannot initialize window.");
         return -1;
     }
-    if (ctx.window == nullptr) {
-        Logger::getInstance().logError("Window is nullptr.");
-        return -1;
-    }
-    
-    assimpViewerApp.setWindow(ctx.window);
 
+    assimpViewerApp.setWindow(ctx.window);
     AbstractWindow *w = assimpViewerApp.getRootWindow();
     if (w == nullptr) {
         Logger::getInstance().logError("OSRE root window is nullptr.");
@@ -254,26 +355,11 @@ int main(int argc, char *argv[]) {
     }
 
     Win32Window *win32Win = (Win32Window *)w;
-    if (w == nullptr) {
-        return -1;
-    }
-
     win32Win->setParent(ctx.handle.hwnd);
 
-    // Setup Dear ImGui context
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGuiIO &io = ImGui::GetIO();
-    (void)io;
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad; // Enable Gamepad Controls
-
-    // Setup Dear ImGui style
-    ImGui::StyleColorsDark();
-
-    // Setup Platform/Renderer back end's
-    ImGui_ImplSDL2_InitForOpenGL(ctx.window, ctx.gl_context);
-    ImGui_ImplOpenGL3_Init(ctx.glsl_version);
+    ImGuiIO io = {};
+    ImGuiWrapper imguiWrapper(ctx, io);
+    imguiWrapper.init();
 
     // Our state
     const ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
@@ -317,66 +403,14 @@ int main(int argc, char *argv[]) {
         }
 
         // Start the Dear ImGui frame
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplSDL2_NewFrame();
-        ImGui::NewFrame();
-        ImGuiWindowFlags window_flags = 0;
-        window_flags |= ImGuiWindowFlags_MenuBar;
-        {
-            static int counter = 0;
-            bool importAsset = false;
-            bool exportAsset = false;
-            bool newImporter = false;
-            bool p_open = true;
-            bool info = false;
-            ImGui::Begin("OSRE-Viewer", &p_open, window_flags); 
-            setMenu(newImporter, importAsset, exportAsset, done, info);
+        imguiWrapper.updateFrame(assimpViewerApp, done);
+        imguiWrapper.renderFrame(clear_color);
 
-            if (importAsset) {
-                IO::Uri modelLoc;
-                PlatformOperations::getFileOpenDialog("Select asset for import", "*", modelLoc);
-                if (modelLoc.isValid()) {
-                    assimpViewerApp.loadAsset(modelLoc);
-                }
-            }
-
-            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
-            if (ImGui::TreeNode("Scene")) {
-                App::Stage *stage = assimpViewerApp.getStage();
-                if (stage != nullptr) {
-                    World *world = stage->getActiveWorld(0);
-                }
-
-                const aiScene *scene = assimpViewerApp.getScene();
-                setSceneTree(scene);
-                ImGui::TreePop();
-            }
-            ImGui::End();
-        }
-
-        // Rendering
-        ImGui::Render();
-        glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);
-        glClearColor(clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w);
-        glClear(GL_COLOR_BUFFER_BIT);
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-        SDL_GL_SwapWindow(ctx.window);
-
-        assimpViewerApp.handleEvents();
-        assimpViewerApp.update();
-        assimpViewerApp.requestNextFrame();
+        assimpViewerApp.renderFrame();
     }
 
-    // Cleanup
-    ImGui_ImplOpenGL3_Shutdown();
-    ImGui_ImplSDL2_Shutdown();
-    ImGui::DestroyContext();
-
-    if (releaseSDL(ctx) == -1) {
-        std::cerr << "*Err*: "
-                  << "Cannot release SDL.";
-        return -1;
-    }
+    imguiWrapper.release();
+    releaseSDL(ctx);
 
     return 0;
 }

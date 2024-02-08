@@ -83,7 +83,7 @@ void AssimpViewerApp::loadAsset(const IO::Uri &modelLoc) {
 
     World *world = getStage()->getActiveWorld(0);
     Entity *entity = nullptr;
-    const aiScene *scene = importAssimp(modelLoc.getAbsPath(), getIdContainer(), world, &entity);    
+    const aiScene *scene = importAssimp(modelLoc.getAbsPath(), world, &entity);    
     if (entity == nullptr) {
         return;
     }
@@ -117,23 +117,25 @@ void AssimpViewerApp::clearScene() {
     mAssimpWrapper = nullptr;
 }
 
-const aiScene *AssimpViewerApp::importAssimp(const std::string &path, Ids *ids, World *world, Entity **entity) {
-    if (ids == nullptr) {
-        return nullptr;
-    }
-
+const aiScene *AssimpViewerApp::importAssimp(const std::string &path, World *world, Entity **entity) {
     IO::Uri loc(path);
     if (mAssimpWrapper != nullptr) {
         clearScene();
     }
 
-    mAssimpWrapper = new AssimpWrapper(*ids, world);
+    mAssimpWrapper = new AssimpWrapper(mIds, world);
     if (!mAssimpWrapper->importAsset(loc, 0)) {
         return nullptr;
     }
 
     *entity = mAssimpWrapper->getEntity();
     return mAssimpWrapper->getScene();
+}
+
+void AssimpViewerApp::renderFrame() {
+    handleEvents();
+    update();
+    requestNextFrame();
 }
 
 bool AssimpViewerApp::onCreate() {
