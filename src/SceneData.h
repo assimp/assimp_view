@@ -24,6 +24,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #include <osre/Common/osre_common.h>
 #include <osre/App/TransformComponent.h>
+#include <osre/App/CameraComponent.h>
 #include <osre/App/World.h>
 
 namespace AssimpViewer {
@@ -32,7 +33,7 @@ struct SceneData {
     std::string mAssetName;
     const aiScene *mScene;
     OSRE::App::TransformComponent::NodePtr mModelNode;
-    OSRE::App::Camera *mCamera;
+    OSRE::App::CameraComponent *mCamera;
 
     SceneData();
     ~SceneData() = default;

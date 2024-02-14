@@ -52,18 +52,18 @@ AssimpViewerApp::AssimpViewerApp(int argc, char *argv[]) :
     // empty
 }
 
-Camera *AssimpViewerApp::setupCamera(World *world) {
+CameraComponent *AssimpViewerApp::setupCamera(World *world) {
     ui32 w{ 0 }, h{ 0 };
     Entity *camEntity{ nullptr };
     camEntity = world->getEntityByName("camera");
-    Camera *camera{ nullptr };
+    CameraComponent *camera{ nullptr };
     if (camEntity == nullptr) {
         camEntity = new Entity("camera", *getIdContainer(), world);
         world->addEntity(camEntity);
-        camera = (Camera *)camEntity->createComponent(ComponentType::CameraComponentType);
+        camera = (CameraComponent *)camEntity->createComponent(ComponentType::CameraComponentType);
         world->setActiveCamera(camera);
     } else {
-        camera = (Camera *)camEntity->getComponent(ComponentType::CameraComponentType);
+        camera = (CameraComponent *)camEntity->getComponent(ComponentType::CameraComponentType);
     }
     AppBase::getResolution(w, h);
     camera->setProjectionParameters(60.f, (f32)w, (f32)h, 0.001f, 1000.f);
@@ -96,7 +96,7 @@ void AssimpViewerApp::loadAsset(const IO::Uri &modelLoc) {
 
     rootWindow->getWindowsRect(mWindowsRect);
     Entity *camEntity = new Entity(std::string("camera_1"), *getIdContainer(), world);
-    Camera *camera = (Camera *)camEntity->createComponent(ComponentType::CameraComponentType);
+    CameraComponent *camera = (CameraComponent *)camEntity->createComponent(ComponentType::CameraComponentType);
     world->setActiveCamera(camera);
     mSceneData.mCamera = camera;
     mSceneData.mCamera->setProjectionParameters(
@@ -149,7 +149,7 @@ bool AssimpViewerApp::onCreate() {
     }
 
     mEntity = new Entity("entity", *AppBase::getIdContainer(), world);
-    Camera *camera = setupCamera(world);
+    CameraComponent *camera = setupCamera(world);
     Mesh *coordAxis = MainRenderView::createCoordAxis(100u);
     if (nullptr != coordAxis) {
         RenderComponent *rc = (RenderComponent *)mEntity->getComponent(ComponentType::RenderComponentType);
@@ -174,7 +174,7 @@ void AssimpViewerApp::onUpdate() {
     rbSrv->beginPass(RenderPass::getPassNameById(RenderPassId));
     rbSrv->beginRenderBatch("b.1");
 
-    rbSrv->setMatrix(MatrixType::Model, mTransformMatrix.m_model);
+    rbSrv->setMatrix(MatrixType::Model, mTransformMatrix.mModel);
 
     rbSrv->endRenderBatch();
     rbSrv->endPass();

@@ -15,6 +15,7 @@ set( CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY}/bin )
 
 INCLUDE_DIRECTORIES( BEFORE
     ${osre_folder}/src
+    ${osre_folder}/src/Engine
     ${osre_contrib_folder}/src
     ${osre_contrib_folder}/imgui
     ${osre_contrib_folder}/cppcore/include

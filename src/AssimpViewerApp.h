@@ -25,7 +25,7 @@ class AssimpViewerApp : public OSRE::App::AppBase {
 public:
     AssimpViewerApp(int argc, char *argv[]);
     ~AssimpViewerApp() override = default;
-    OSRE::App::Camera *setupCamera(OSRE::App::World *world);
+    OSRE::App::CameraComponent *setupCamera(OSRE::App::World *world);
     void setWindow(SDL_Window *window);
     bool onCreate() override;
     void onUpdate() override;

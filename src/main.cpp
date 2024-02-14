@@ -401,12 +401,12 @@ int main(int argc, char *argv[]) {
                 }
             } 
         }
+        assimpViewerApp.renderFrame();
 
         // Start the Dear ImGui frame
         imguiWrapper.updateFrame(assimpViewerApp, done);
         imguiWrapper.renderFrame(clear_color);
 
-        assimpViewerApp.renderFrame();
     }
 
     imguiWrapper.release();
