@@ -289,7 +289,7 @@ struct ImGuiWrapper {
             bool newImporter = false;
             bool p_open = true;
             bool info = false;
-            ImGui::Begin("OSRE-Viewer", &p_open, window_flags);
+            ImGui::Begin("Assimp Viewer", &p_open, window_flags);
             setMenu(newImporter, importAsset, done, info);
 
             if (importAsset) {
@@ -333,10 +333,15 @@ struct ImGuiWrapper {
         return 0;
     }
 };
-    
+
+
 int main(int argc, char *argv[]) {    
     SDLContext ctx;
-    if (initSDL(ctx, 20, 20, 1280, 1024) == -1) {
+    uint32_t x = 20;
+    uint32_t y = 20;
+    uint32_t w = 1280;
+    uint32_t h = 1024;
+    if (initSDL(ctx, x, y, w, h) == -1) {
         Logger::getInstance().logError("Cannot initialize SDL.");
         return -1;
     }
@@ -348,13 +353,13 @@ int main(int argc, char *argv[]) {
     }
 
     assimpViewerApp.setWindow(ctx.window);
-    AbstractWindow *w = assimpViewerApp.getRootWindow();
-    if (w == nullptr) {
+    AbstractWindow *win = assimpViewerApp.getRootWindow();
+    if (win == nullptr) {
         Logger::getInstance().logError("OSRE root window is nullptr.");
         return -1;
     }
 
-    Win32Window *win32Win = (Win32Window *)w;
+    Win32Window *win32Win = (Win32Window *)win;
     win32Win->setParent(ctx.handle.hwnd);
 
     ImGuiIO io = {};
@@ -378,21 +383,29 @@ int main(int argc, char *argv[]) {
                 if (event.window.event == SDL_WINDOWEVENT_CLOSE && event.window.windowID == SDL_GetWindowID(ctx.window)) {
                     done = true;
                 }
-                WindowsProperties *p = w->getProperties();
+                WindowsProperties *p = win->getProperties();
                 switch (event.window.event) {
                     case SDL_WINDOWEVENT_RESIZED:
-                        if (p != nullptr) {
-                            const uint32_t width = event.window.data1;
-                            const uint32_t height = event.window.data2;
-                            w->resize(p->m_x, p->m_y, width, height);
+                        if (p != nullptr) { 
+                            const uint32_t new_width = event.window.data1;
+                            const uint32_t new_height = event.window.data2;
+                            const uint32_t diff_w = new_width - w;
+                            const uint32_t diff_h = new_height - h;
+                            w = new_width;
+                            h = new_height;
+                            win->resize(p->mRect.x1, p->mRect.y1, p->mRect.width+diff_w, p->mRect.height+diff_h);
                         }
                         break;
 
                     case SDL_WINDOWEVENT_SIZE_CHANGED:
                         if (p != nullptr) {
-                            const uint32_t width = event.window.data1;
-                            const uint32_t height = event.window.data2;
-                            w->resize(p->m_x, p->m_y, width, height);
+                            const uint32_t new_width = event.window.data1;
+                            const uint32_t new_height = event.window.data2;
+                            const uint32_t diff_w = new_width - w;
+                            const uint32_t diff_h = new_height - h;
+                            w = new_width;
+                            h = new_height;
+                            win->resize(p->mRect.x1, p->mRect.y1, p->mRect.width + diff_w, p->mRect.height + diff_h);
                         }
                         break;
 
@@ -401,12 +414,12 @@ int main(int argc, char *argv[]) {
                 }
             } 
         }
-        assimpViewerApp.renderFrame();
 
         // Start the Dear ImGui frame
         imguiWrapper.updateFrame(assimpViewerApp, done);
         imguiWrapper.renderFrame(clear_color);
 
+        assimpViewerApp.renderFrame();
     }
 
     imguiWrapper.release();
