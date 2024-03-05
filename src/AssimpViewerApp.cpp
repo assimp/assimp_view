@@ -3,6 +3,8 @@
 #include "AssimpViewerApp.h"
 #include "MainRenderView.h"
 
+#include <assimp/postprocess.h>
+
 #include <osre/RenderBackend/MeshBuilder.h>
 #include <osre/App/Stage.h>
 #include <osre/App/TransformController.h>
@@ -124,6 +126,12 @@ const aiScene *AssimpViewerApp::importAssimp(const std::string &path, World *wor
     }
 
     mAssimpWrapper = new AssimpWrapper(mIds, world);
+    ui32 ppFlags = aiProcess_GenSmoothNormals | // generate smooth normal vectors if not existing
+                   aiProcess_SplitLargeMeshes | // split large, unrenderable meshes into submeshes
+                   aiProcess_Triangulate | // triangulate polygons with more than 3 edges
+                   aiProcess_ConvertToLeftHanded | // convert everything to D3D left handed space
+                   aiProcess_SortByPType;
+
     if (!mAssimpWrapper->importAsset(loc, 0)) {
         return nullptr;
     }

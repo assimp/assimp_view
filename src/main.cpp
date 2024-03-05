@@ -252,6 +252,7 @@ errcode_t releaseSDL(SDLContext &ctx) {
 struct ImGuiWrapper {
     SDLContext &mCtx;
     ImGuiIO &mIo;
+    const ImVec4 mClearColor = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
     ImGuiWrapper(SDLContext &ctx, ImGuiIO &io) :
             mCtx(ctx), mIo(io) {}
@@ -315,9 +316,9 @@ struct ImGuiWrapper {
         return 0;
     }
 
-    errcode_t renderFrame(const ImVec4 &clear_color) {
+    errcode_t renderFrame() {
         glViewport(0, 0, (int)mIo.DisplaySize.x, (int)mIo.DisplaySize.y);
-        glClearColor(clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w);
+        glClearColor(mClearColor.x * mClearColor.w, mClearColor.y * mClearColor.w, mClearColor.z * mClearColor.w, mClearColor.w);
         glClear(GL_COLOR_BUFFER_BIT);
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         SDL_GL_SwapWindow(mCtx.window);
@@ -337,8 +338,8 @@ struct ImGuiWrapper {
 
 int main(int argc, char *argv[]) {    
     SDLContext ctx;
-    uint32_t x = 20;
-    uint32_t y = 20;
+    uint32_t x = 25;
+    uint32_t y = 25;
     uint32_t w = 1280;
     uint32_t h = 1024;
     if (initSDL(ctx, x, y, w, h) == -1) {
@@ -347,7 +348,7 @@ int main(int argc, char *argv[]) {
     }
 
     AssimpViewerApp assimpViewerApp(argc, argv);
-    if (!assimpViewerApp.initWindow(400, 25, 800, 800, "test", false, true, App::RenderBackendType::OpenGLRenderBackend)) {
+    if (!assimpViewerApp.initWindow(400, 15, 800, 800, "test", false, true, App::RenderBackendType::OpenGLRenderBackend)) {
         Logger::getInstance().logError("Cannot initialize window.");
         return -1;
     }
@@ -358,16 +359,15 @@ int main(int argc, char *argv[]) {
         Logger::getInstance().logError("OSRE root window is nullptr.");
         return -1;
     }
-
+#ifdef _WIN32
     Win32Window *win32Win = (Win32Window *)win;
-    win32Win->setParent(ctx.handle.hwnd);
+    win32Win->setParentHandle(ctx.handle.hwnd);
+#else
+#endif
 
     ImGuiIO io = {};
     ImGuiWrapper imguiWrapper(ctx, io);
     imguiWrapper.init();
-
-    // Our state
-    const ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
     // Main loop
     bool done = false;
@@ -383,47 +383,66 @@ int main(int argc, char *argv[]) {
                 if (event.window.event == SDL_WINDOWEVENT_CLOSE && event.window.windowID == SDL_GetWindowID(ctx.window)) {
                     done = true;
                 }
+
                 WindowsProperties *p = win->getProperties();
-                switch (event.window.event) {
-                    case SDL_WINDOWEVENT_RESIZED:
-                        if (p != nullptr) { 
-                            const uint32_t new_width = event.window.data1;
-                            const uint32_t new_height = event.window.data2;
-                            const uint32_t diff_w = new_width - w;
-                            const uint32_t diff_h = new_height - h;
-                            w = new_width;
-                            h = new_height;
-                            win->resize(p->mRect.x1, p->mRect.y1, p->mRect.width+diff_w, p->mRect.height+diff_h);
-                        }
-                        break;
+                if (event.type == SDL_KEYDOWN) {
+                    KeyboardButtonEventData *data = new KeyboardButtonEventData(true, nullptr);
+                    const char *c = SDL_GetKeyName(event.key.keysym.sym);
+                    const char l = tolower(*c);
+                    data->m_key = (Key)l;
+                    win->getEventQueue()->enqueueEvent(KeyboardButtonDownEvent, data);
+                } else if (event.type == SDL_KEYUP) {
+                    KeyboardButtonEventData *data = new KeyboardButtonEventData(false, nullptr);
+                    const char *c = SDL_GetKeyName(event.key.keysym.sym);
+                    const char l = tolower(*c);
+                    data->m_key = (Key)l;
+                    win->getEventQueue()->enqueueEvent(KeyboardButtonDownEvent, data);
+                } else {
+                    switch (event.window.event) {
+                        case SDL_WINDOWEVENT_RESIZED:
+                            if (p != nullptr) {
+                                const uint32_t new_width = event.window.data1;
+                                const uint32_t new_height = event.window.data2;
+                                const uint32_t diff_w = new_width - w;
+                                const uint32_t diff_h = new_height - h;
+                                w = new_width;
+                                h = new_height;
+                                win->resize(p->mRect.x1, p->mRect.y1, p->mRect.width + diff_w, p->mRect.height + diff_h);
+                            }
+                            break;
 
-                    case SDL_WINDOWEVENT_SIZE_CHANGED:
-                        if (p != nullptr) {
-                            const uint32_t new_width = event.window.data1;
-                            const uint32_t new_height = event.window.data2;
-                            const uint32_t diff_w = new_width - w;
-                            const uint32_t diff_h = new_height - h;
-                            w = new_width;
-                            h = new_height;
-                            win->resize(p->mRect.x1, p->mRect.y1, p->mRect.width + diff_w, p->mRect.height + diff_h);
-                        }
-                        break;
+                        case SDL_WINDOWEVENT_SIZE_CHANGED:
+                            if (p != nullptr) {
+                                const uint32_t new_width = event.window.data1;
+                                const uint32_t new_height = event.window.data2;
+                                const uint32_t diff_w = new_width - w;
+                                const uint32_t diff_h = new_height - h;
+                                w = new_width;
+                                h = new_height;
+                                win->resize(p->mRect.x1, p->mRect.y1, p->mRect.width + diff_w, p->mRect.height + diff_h);
+                            }
+                            break;
 
-                    default:
-                        break;
+                        case SDL_WINDOWEVENT:
+
+                        default:
+                            break;
+                    }
                 }
             } 
         }
 
         // Start the Dear ImGui frame
         imguiWrapper.updateFrame(assimpViewerApp, done);
-        imguiWrapper.renderFrame(clear_color);
+        imguiWrapper.renderFrame();
 
         assimpViewerApp.renderFrame();
     }
 
     imguiWrapper.release();
     releaseSDL(ctx);
+
+    MemoryStatistics::showStatistics();
 
     return 0;
 }
