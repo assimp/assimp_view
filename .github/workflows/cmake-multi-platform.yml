@@ -45,7 +45,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       with:
-        submodules: "recurvice"
+        submodules: "recursive"
 
     - name: install_dependencies
       run: |
