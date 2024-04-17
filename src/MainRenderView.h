@@ -22,9 +22,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 -----------------------------------------------------------------------------------------------*/
 #pragma once
 
-#include <osre/App/Entity.h>
-#include <osre/RenderBackend/RenderBackendService.h>
-#include <osre/RenderBackend/Mesh.h>
+#include <cstdint>
 
 namespace OSRE {
 
@@ -44,12 +42,6 @@ namespace Animation {
 
 namespace AssimpViewer {
 
-struct Style {
-    OSRE::Color4 FG;
-    OSRE::Color4 BG;
-    uint32_t DefaultFontSize;
-};
-
 //-------------------------------------------------------------------------------------------------
 ///	@ingroup    Editor
 ///
@@ -59,14 +51,8 @@ class MainRenderView {
 public:
     MainRenderView();
     ~MainRenderView();
-    static OSRE::RenderBackend::Mesh *createCoordAxis(uint32_t size);
-    static OSRE::RenderBackend::Mesh *createGrid(uint32_t numLines);
-    static void createRect2D(const OSRE::Rect2ui &r, OSRE::RenderBackend::Mesh *mesh2D, Style &style);
-    void createEditorElements(OSRE::App::RenderComponent *rc);
-    void render(OSRE::RenderBackend::RenderBackendService *rbSrb, glm::mat4 model);
 
 private:
-    OSRE::RenderBackend::MeshArray mEditorElements;
 };
 
 } // namespace AssimpViewer

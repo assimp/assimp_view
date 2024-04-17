@@ -22,18 +22,15 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 -----------------------------------------------------------------------------------------------*/
 #pragma once
 
-#include <osre/Common/osre_common.h>
-#include <osre/App/TransformComponent.h>
-#include <osre/App/CameraComponent.h>
-#include <osre/App/World.h>
+#include <string>
+
+struct aiScene;
 
 namespace AssimpViewer {
 
 struct SceneData {
     std::string mAssetName;
     const aiScene *mScene;
-    OSRE::App::TransformComponent::NodePtr mModelNode;
-    OSRE::App::CameraComponent *mCamera;
 
     SceneData();
     ~SceneData() = default;
@@ -41,9 +38,7 @@ struct SceneData {
 
 inline SceneData::SceneData() :
         mAssetName("none"),
-        mScene(nullptr),
-        mModelNode(),
-        mCamera(nullptr) {
+        mScene(nullptr) {
     // empty
 }
 

@@ -28,7 +28,9 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <SDL_syswm.h>
 #include <iostream>
 
+#ifdef _WIN32
 #include "Engine/Platform/win32/Win32Window.h"
+#endif 
 
 #ifdef main
 #undef main
@@ -36,31 +38,16 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #define main main
 
-#include <osre/App/App.h>
-#include <osre/RenderBackend/RenderCommon.h>
-#include <osre/RenderBackend/MeshBuilder.h>
-#include <osre/Common/Logger.h>
-#include <osre/RenderBackend/RenderBackendService.h>
-#include <osre/RenderBackend/TransformMatrixBlock.h>
-#include <osre/App/Entity.h>
-#include <osre/Platform/AbstractWindow.h>
-#include <osre/Common/glm_common.h>
-#include <osre/Platform/PlatformOperations.h>
-#include <osre/Platform/PlatformInterface.h>
 
 #include "AssimpViewerApp.h"
 
 #include <assimp/scene.h>
 
-using namespace OSRE;
 using namespace Assimp;
-using namespace OSRE::RenderBackend;
-using namespace OSRE::App;
-using namespace OSRE::Platform;
 
 using namespace AssimpViewer;
 
-static constexpr c8 Tag[] = "AssimpViewerApp";
+static constexpr char Tag[] = "AssimpViewerApp";
 
 void addChildren(aiNode *node) {
     if (node == nullptr) {
@@ -120,23 +107,11 @@ void setSceneTree(const aiScene *scene) {
     addChildren(node);
 }
 
-struct PlatformHandle {
-#ifdef __APPLE__
-#elif __linux__
-#elif _WIN32
-    HWND hwnd;
-    HWND getHandle() const {
-        return hwnd;
-    }
-#endif
-};
-
 struct SDLContext {
     SDL_Window *window;
     SDL_GLContext gl_context;
     SDL_SysWMinfo wmInfo;
     const char *glsl_version;
-    PlatformHandle handle;
 };
 
 using errcode_t = int32_t;
@@ -231,16 +206,6 @@ errcode_t initSDL(SDLContext &ctx, uint32_t x, uint32_t y, uint32_t w, uint32_t 
     return 0;
 }
 
-errcode_t loadAssetCallback(AssimpViewerApp &assimpViewerApp) {
-    IO::Uri modelLoc;
-    PlatformOperations::getFileOpenDialog("Select asset for import", "*", modelLoc);
-    if (modelLoc.isValid()) {
-        assimpViewerApp.loadAsset(modelLoc);
-    }
-
-    return 0;
-}
-
 errcode_t releaseSDL(SDLContext &ctx) {
     SDL_GL_DeleteContext(ctx.gl_context);
     SDL_DestroyWindow(ctx.window);
@@ -278,6 +243,9 @@ struct ImGuiWrapper {
         return 0;
     }
 
+    void loadAsset_cb(AssimpViewerApp &assimpViewerApp) {
+
+    }
     errcode_t updateFrame(AssimpViewerApp &assimpViewerApp, bool &done) {
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplSDL2_NewFrame();
@@ -294,15 +262,11 @@ struct ImGuiWrapper {
             setMenu(newImporter, importAsset, done, info);
 
             if (importAsset) {
-                loadAssetCallback(assimpViewerApp);
+                loadAsset_cb(assimpViewerApp);
             }
 
             ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / mIo.Framerate, mIo.Framerate);
             if (ImGui::TreeNode("Scene")) {
-                App::Stage *stage = assimpViewerApp.getStage();
-                if (stage != nullptr) {
-                    World *world = stage->getActiveWorld(0);
-                }
 
                 const aiScene *scene = assimpViewerApp.getScene();
                 setSceneTree(scene);
@@ -348,22 +312,7 @@ int main(int argc, char *argv[]) {
     }
 
     AssimpViewerApp assimpViewerApp(argc, argv);
-    if (!assimpViewerApp.initWindow(400, 15, 800, 800, "test", false, true, App::RenderBackendType::OpenGLRenderBackend)) {
-        Logger::getInstance().logError("Cannot initialize window.");
-        return -1;
-    }
 
-    assimpViewerApp.setWindow(ctx.window);
-    AbstractWindow *win = assimpViewerApp.getRootWindow();
-    if (win == nullptr) {
-        Logger::getInstance().logError("OSRE root window is nullptr.");
-        return -1;
-    }
-#ifdef _WIN32
-    Win32Window *win32Win = (Win32Window *)win;
-    win32Win->setParentHandle(ctx.handle.hwnd);
-#else
-#endif
 
     ImGuiIO io = {};
     ImGuiWrapper imguiWrapper(ctx, io);
@@ -378,58 +327,6 @@ int main(int argc, char *argv[]) {
             if (event.type == SDL_QUIT) {
                 done = true;
             }
-
-            if (event.type == SDL_WINDOWEVENT) {
-                if (event.window.event == SDL_WINDOWEVENT_CLOSE && event.window.windowID == SDL_GetWindowID(ctx.window)) {
-                    done = true;
-                }
-
-                WindowsProperties *p = win->getProperties();
-                if (event.type == SDL_KEYDOWN) {
-                    KeyboardButtonEventData *data = new KeyboardButtonEventData(true, nullptr);
-                    const char *c = SDL_GetKeyName(event.key.keysym.sym);
-                    const char l = tolower(*c);
-                    data->m_key = (Key)l;
-                    win->getEventQueue()->enqueueEvent(KeyboardButtonDownEvent, data);
-                } else if (event.type == SDL_KEYUP) {
-                    KeyboardButtonEventData *data = new KeyboardButtonEventData(false, nullptr);
-                    const char *c = SDL_GetKeyName(event.key.keysym.sym);
-                    const char l = tolower(*c);
-                    data->m_key = (Key)l;
-                    win->getEventQueue()->enqueueEvent(KeyboardButtonDownEvent, data);
-                } else {
-                    switch (event.window.event) {
-                        case SDL_WINDOWEVENT_RESIZED:
-                            if (p != nullptr) {
-                                const uint32_t new_width = event.window.data1;
-                                const uint32_t new_height = event.window.data2;
-                                const uint32_t diff_w = new_width - w;
-                                const uint32_t diff_h = new_height - h;
-                                w = new_width;
-                                h = new_height;
-                                win->resize(p->mRect.x1, p->mRect.y1, p->mRect.width + diff_w, p->mRect.height + diff_h);
-                            }
-                            break;
-
-                        case SDL_WINDOWEVENT_SIZE_CHANGED:
-                            if (p != nullptr) {
-                                const uint32_t new_width = event.window.data1;
-                                const uint32_t new_height = event.window.data2;
-                                const uint32_t diff_w = new_width - w;
-                                const uint32_t diff_h = new_height - h;
-                                w = new_width;
-                                h = new_height;
-                                win->resize(p->mRect.x1, p->mRect.y1, p->mRect.width + diff_w, p->mRect.height + diff_h);
-                            }
-                            break;
-
-                        case SDL_WINDOWEVENT:
-
-                        default:
-                            break;
-                    }
-                }
-            } 
         }
 
         // Start the Dear ImGui frame
@@ -441,8 +338,6 @@ int main(int argc, char *argv[]) {
 
     imguiWrapper.release();
     releaseSDL(ctx);
-
-    MemoryStatistics::showStatistics();
 
     return 0;
 }
