@@ -1,5 +1,5 @@
 # assimp_view
-The Asset-Importer-Lib Viewer
+The Asset-Importer-Lib Viewer repository. 
 
 ## Build status
 
