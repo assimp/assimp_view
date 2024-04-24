@@ -2,8 +2,7 @@
 The Asset-Importer-Lib Viewer repository. 
 
 ## Build status
-
-[![CMake](https://github.com/assimp/assimp_view/actions/workflows/cmake.yml/badge.svg)](https://github.com/assimp/assimp_view/actions/workflows/cmake.yml)
+[![CMake on multiple platforms](https://github.com/assimp/assimp_view/actions/workflows/cmake-multi-platform.yml/badge.svg)](https://github.com/assimp/assimp_view/actions/workflows/cmake-multi-platform.yml)
 
 ## How to build the app
 
