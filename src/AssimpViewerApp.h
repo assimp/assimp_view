@@ -11,7 +11,6 @@ public:
     AssimpViewerApp(int argc, char *argv[]);
     ~AssimpViewerApp();
     const aiScene *importAssimp(const std::string &path);
-    void renderFrame();
     const aiScene *getScene() const;
 
 private:

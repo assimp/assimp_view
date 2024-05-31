@@ -28,16 +28,11 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <SDL_syswm.h>
 #include <iostream>
 
-#ifdef _WIN32
-#include "Engine/Platform/win32/Win32Window.h"
-#endif 
-
 #ifdef main
-#undef main
+#  undef main
 #endif
 
 #define main main
-
 
 #include "AssimpViewerApp.h"
 
@@ -246,6 +241,7 @@ struct ImGuiWrapper {
     void loadAsset_cb(AssimpViewerApp &assimpViewerApp) {
 
     }
+
     errcode_t updateFrame(AssimpViewerApp &assimpViewerApp, bool &done) {
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplSDL2_NewFrame();
@@ -286,7 +282,7 @@ struct ImGuiWrapper {
         glClear(GL_COLOR_BUFFER_BIT);
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         SDL_GL_SwapWindow(mCtx.window);
-        
+
         return 0;
     }
     // Cleanup
@@ -294,7 +290,7 @@ struct ImGuiWrapper {
         ImGui_ImplOpenGL3_Shutdown();
         ImGui_ImplSDL2_Shutdown();
         ImGui::DestroyContext();
-        
+
         return 0;
     }
 };
