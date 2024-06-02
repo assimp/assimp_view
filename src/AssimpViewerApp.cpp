@@ -6,7 +6,7 @@
 
 #include "AssimpViewerApp.h"
 #include "MainRenderView.h"
-
+#include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
 #include <SDL.h>
@@ -30,41 +30,55 @@
 
 struct vec2 {
     float x, y;
-}
+};
+
 struct vec3 {
     float x,y,z;
-}
+};
+
 struct mesh_vertex {
 	vec3 position;
 	vec3 normal;
 	vec2 uv;
 	float f_vertex_index;
-} mesh_vertex;
+};
 
 struct skin_vertex {
 	uint8_t bone_index[4];
 	uint8_t bone_weight[4];
-} skin_vertex;
-
-static const sg_layout_desc mesh_vertex_layout = {
-	.attrs = {
-		{ .buffer_index = 0, .format = SG_VERTEXFORMAT_FLOAT3 },
-		{ .buffer_index = 0, .format = SG_VERTEXFORMAT_FLOAT3 },
-		{ .buffer_index = 0, .format = SG_VERTEXFORMAT_FLOAT2 },
-		{ .buffer_index = 0, .format = SG_VERTEXFORMAT_FLOAT },
-	},
 };
 
-static const sg_layout_desc skinned_mesh_vertex_layout = {
-	.attrs = {
-		{ .buffer_index = 0, .format = SG_VERTEXFORMAT_FLOAT3 },
-		{ .buffer_index = 0, .format = SG_VERTEXFORMAT_FLOAT3 },
-		{ .buffer_index = 0, .format = SG_VERTEXFORMAT_FLOAT2 },
-		{ .buffer_index = 0, .format = SG_VERTEXFORMAT_FLOAT },
-		{ .buffer_index = 1, .format = SG_VERTEXFORMAT_BYTE4 },
-		{ .buffer_index = 1, .format = SG_VERTEXFORMAT_UBYTE4N },
-	},
-};
+static sg_layout_desc mesh_vertex_layout;
+
+static void initMeshVertexFormat() {
+	mesh_vertex_layout.attrs[0].buffer_index = 0;
+	mesh_vertex_layout.attrs[0].format = SG_VERTEXFORMAT_FLOAT3;
+
+	mesh_vertex_layout.attrs[1].buffer_index = 0;
+	mesh_vertex_layout.attrs[1].format = SG_VERTEXFORMAT_FLOAT3;
+
+	mesh_vertex_layout.attrs[2].buffer_index = 0;
+	mesh_vertex_layout.attrs[2].format = SG_VERTEXFORMAT_FLOAT2;
+
+	mesh_vertex_layout.attrs[3].buffer_index = 0;
+	mesh_vertex_layout.attrs[3].format = SG_VERTEXFORMAT_FLOAT;
+}
+
+static sg_layout_desc skinned_mesh_vertex_layout;
+
+static void initSkinnedMeshVertexFormat() {
+	skinned_mesh_vertex_layout.attrs[0].buffer_index = 0;
+	skinned_mesh_vertex_layout.attrs[0].format = SG_VERTEXFORMAT_FLOAT3;
+
+	skinned_mesh_vertex_layout.attrs[1].buffer_index = 0;
+	skinned_mesh_vertex_layout.attrs[1].format = SG_VERTEXFORMAT_FLOAT3;
+
+	skinned_mesh_vertex_layout.attrs[2].buffer_index = 0;
+	skinned_mesh_vertex_layout.attrs[2].format = SG_VERTEXFORMAT_FLOAT2;
+
+	skinned_mesh_vertex_layout.attrs[3].buffer_index = 0;
+	skinned_mesh_vertex_layout.attrs[3].format = SG_VERTEXFORMAT_FLOAT;
+}
 
 struct quat {
     float x,y,z,w;
@@ -280,7 +294,7 @@ struct viewer_node {
 	mat4 node_to_world;
 	mat4 geometry_to_world;
 	mat4 normal_to_world;
-} viewer_node;
+};
 
 struct viewer_blend_channel {
 	float weight;
@@ -335,7 +349,7 @@ struct viewer_scene {
 	vec3 aabb_min;
 	vec3 aabb_max;
 
-} viewer_scene;
+};
 
 struct viewer {
 
@@ -356,7 +370,7 @@ struct viewer {
 	float camera_pitch;
 	float camera_distance;
 	uint32_t mouse_buttons;
-} viewer;
+};
 
 void read_node(viewer_node *vnode, aiNode *node)
 {
@@ -368,7 +382,7 @@ void read_node(viewer_node *vnode, aiNode *node)
 	vnode->normal_to_world = ufbx_to_um_mat(ufbx_matrix_for_normals(&node->geometry_to_world));*/
 }
 
-sg_image pack_blend_channels_to_image(ufbx_mesh *mesh, ufbx_blend_channel **channels, size_t num_channels)
+/*sg_image pack_blend_channels_to_image(ufbx_mesh *mesh, ufbx_blend_channel **channels, size_t num_channels)
 {
 	// We pack the blend shape data into a 1024xNxM texture array where each texel
 	// contains the vertex `Y*1024 + X` for blend shape `Z`.
@@ -420,7 +434,7 @@ sg_image pack_blend_channels_to_image(ufbx_mesh *mesh, ufbx_blend_channel **chan
 
 	return image;
 }
-
+*/
 void read_mesh(viewer_mesh *vmesh, aiMesh *mesh)
 {
 	// Count the number of needed parts and temporary buffers
@@ -663,7 +677,7 @@ void read_mesh(viewer_mesh *vmesh, aiMesh *mesh)
 	vchan->weight = (float)chan->weight;
 }*/
 
-void read_node_anim(viewer_anim *va, viewer_node_anim *vna, ufbx_anim_stack *stack, ufbx_node *node)
+/*void read_node_anim(viewer_anim *va, viewer_node_anim *vna, ufbx_anim_stack *stack, ufbx_node *node)
 {
 	vna->rot = alloc(um_quat, va->num_frames);
 	vna->pos = alloc(um_vec3, va->num_frames);
@@ -697,9 +711,9 @@ void read_node_anim(viewer_anim *va, viewer_node_anim *vna, ufbx_anim_stack *sta
 	if (const_rot) { vna->const_rot = vna->rot[0]; free(vna->rot); vna->rot = NULL; }
 	if (const_pos) { vna->const_pos = vna->pos[0]; free(vna->pos); vna->pos = NULL; }
 	if (const_scale) { vna->const_scale = vna->scale[0]; free(vna->scale); vna->scale = NULL; }
-}
+}*/
 
-void read_blend_channel_anim(viewer_anim *va, viewer_blend_channel_anim *vbca, ufbx_anim_stack *stack, ufbx_blend_channel *chan)
+/*void read_blend_channel_anim(viewer_anim *va, viewer_blend_channel_anim *vbca, ufbx_anim_stack *stack, ufbx_blend_channel *chan)
 {
 	vbca->weight = alloc(float, va->num_frames);
 
@@ -719,90 +733,18 @@ void read_blend_channel_anim(viewer_anim *va, viewer_blend_channel_anim *vbca, u
 	}
 
 	if (const_weight) { vbca->const_weight = vbca->weight[0]; free(vbca->weight); vbca->weight = NULL; }
-}
-
-void read_anim_stack(viewer_anim *va, ufbx_anim_stack *stack, ufbx_scene *scene)
-{
-	const float target_framerate = 30.0f;
-	const size_t max_frames = 4096;
-
-	// Sample the animation evenly at `target_framerate` if possible while limiting the maximum
-	// number of frames to `max_frames` by potentially dropping FPS.
-	float duration = (float)stack->time_end - (float)stack->time_begin;
-	size_t num_frames = clamp_sz((size_t)(duration * target_framerate), 2, max_frames);
-	float framerate = (float)(num_frames - 1) / duration;
-
-	va->name = alloc_dup(char, stack->name.length + 1, stack->name.data);
-	va->time_begin = (float)stack->time_begin;
-	va->time_end = (float)stack->time_end;
-	va->framerate = framerate;
-	va->num_frames = num_frames;
-
-	// Sample the animations of all nodes and blend channels in the stack
-	va->nodes = alloc(viewer_node_anim, scene->nodes.count);
-	for (size_t i = 0; i < scene->nodes.count; i++) {
-		ufbx_node *node = scene->nodes.data[i];
-		read_node_anim(va, &va->nodes[i], stack, node);
-	}
-
-	va->blend_channels = alloc(viewer_blend_channel_anim, scene->blend_channels.count);
-	for (size_t i = 0; i < scene->blend_channels.count; i++) {
-		ufbx_blend_channel *chan = scene->blend_channels.data[i];
-		read_blend_channel_anim(va, &va->blend_channels[i], stack, chan);
-	}
-}
-
-/*void read_scene(viewer_scene *vs, ufbx_scene *scene)
-{
-	vs->num_nodes = scene->nodes.count;
-	vs->nodes = alloc(viewer_node, vs->num_nodes);
-	for (size_t i = 0; i < vs->num_nodes; i++) {
-		read_node(&vs->nodes[i], scene->nodes.data[i]);
-	}
-
-	vs->num_meshes = scene->meshes.count;
-	vs->meshes = alloc(viewer_mesh, vs->num_meshes);
-	for (size_t i = 0; i < vs->num_meshes; i++) {
-		read_mesh(&vs->meshes[i], scene->meshes.data[i]);
-	}
-
-	vs->num_blend_channels = scene->blend_channels.count;
-	vs->blend_channels = alloc(viewer_blend_channel, vs->num_blend_channels);
-	for (size_t i = 0; i < vs->num_blend_channels; i++) {
-		read_blend_channel(&vs->blend_channels[i], scene->blend_channels.data[i]);
-	}
-
-	vs->num_animations = scene->anim_stacks.count;
-	vs->animations = alloc(viewer_anim, vs->num_animations);
-	for (size_t i = 0; i < vs->num_animations; i++) {
-		read_anim_stack(&vs->animations[i], scene->anim_stacks.data[i], scene);
-	}
 }*/
+
+void read_anim_stack(viewer_anim *va, aiScene *scene)
+{
+}
+
+void read_scene(viewer_scene *vs, aiScene *scene)
+{
+}
 
 void update_animation(viewer_scene *vs, viewer_anim *va, float time)
 {
-	float frame_time = (time - va->time_begin) * va->framerate;
-	size_t f0 = min_sz((size_t)frame_time + 0, va->num_frames - 1);
-	size_t f1 = min_sz((size_t)frame_time + 1, va->num_frames - 1);
-	float t = um_min(frame_time - (float)f0, 1.0f);
-
-	for (size_t i = 0; i < vs->num_nodes; i++) {
-		viewer_node *vn = &vs->nodes[i];
-		viewer_node_anim *vna = &va->nodes[i];
-
-		/*um_quat rot = vna->rot ? um_quat_lerp(vna->rot[f0], vna->rot[f1], t) : vna->const_rot;
-		um_vec3 pos = vna->pos ? um_lerp3(vna->pos[f0], vna->pos[f1], t) : vna->const_pos;
-		um_vec3 scale = vna->scale ? um_lerp3(vna->scale[f0], vna->scale[f1], t) : vna->const_scale;
-
-		vn->node_to_parent = um_mat_trs(pos, rot, scale);*/
-	}
-
-	for (size_t i = 0; i < vs->num_blend_channels; i++) {
-		viewer_blend_channel *vbc = &vs->blend_channels[i];
-		viewer_blend_channel_anim *vbca = &va->blend_channels[i];
-
-		vbc->weight = vbca->weight ? um_lerp(vbca->weight[f0], vbca->weight[f1], t) : vbca->const_weight;
-	}
 }
 
 void update_hierarchy(viewer_scene *vs)
@@ -813,12 +755,12 @@ void update_hierarchy(viewer_scene *vs)
 		// ufbx stores nodes in order where parent nodes always precede child nodes so we can
 		// evaluate the transform hierarchy with a flat loop.
 		if (vn->parent_index >= 0) {
-			vn->node_to_world = um_mat_mul(vs->nodes[vn->parent_index].node_to_world, vn->node_to_parent);
+			//vn->node_to_world = um_mat_mul(vs->nodes[vn->parent_index].node_to_world, vn->node_to_parent);
 		} else {
 			vn->node_to_world = vn->node_to_parent;
 		}
-		vn->geometry_to_world = um_mat_mul(vn->node_to_world, vn->geometry_to_node);
-		vn->normal_to_world = um_mat_transpose(um_mat_inverse(vn->geometry_to_world));
+		//vn->geometry_to_world = um_mat_mul(vn->node_to_world, vn->geometry_to_node);
+		//vn->normal_to_world = um_mat_transpose(um_mat_inverse(vn->geometry_to_world));
 	}
 }
 
@@ -852,7 +794,7 @@ void init_pipelines(viewer *view)
 		},
 	});
 
-	um_vec4 empty_blend_shape_data = { 0 };
+	vec4 empty_blend_shape_data = { 0 };
 	view->empty_blend_shape_image = sg_make_image(&(sg_image_desc){
 		.type = SG_IMAGETYPE_ARRAY,
 		.width = 1,
@@ -865,54 +807,6 @@ void init_pipelines(viewer *view)
 
 void load_scene(viewer_scene *vs, const char *filename)
 {
-	ufbx_load_opts opts = {
-		.load_external_files = true,
-		.ignore_missing_external_files = true,
-		.generate_missing_normals = true,
-
-		// NOTE: We use this _only_ for computing the bounds of the scene!
-		// The viewer contains a proper implementation of skinning as well.
-		// You probably don't need this.
-		.evaluate_skinning = true,
-
-		.target_axes = {
-			.right = UFBX_COORDINATE_AXIS_POSITIVE_X,
-			.up = UFBX_COORDINATE_AXIS_POSITIVE_Y,
-			.front = UFBX_COORDINATE_AXIS_POSITIVE_Z,
-		},
-		.target_unit_meters = 1.0f,
-	};
-	ufbx_error error;
-	ufbx_scene *scene = ufbx_load_file(filename, &opts, &error);
-	if (!scene) {
-		print_error(&error, "Failed to load scene");
-		exit(1);
-	}
-
-	read_scene(vs, scene);
-
-	// Compute the world-space bounding box
-	vs->aabb_min = um_dup3(+INFINITY);
-	vs->aabb_max = um_dup3(-INFINITY);
-	for (size_t mesh_ix = 0; mesh_ix < vs->num_meshes; mesh_ix++) {
-		viewer_mesh *mesh = &vs->meshes[mesh_ix];
-		um_vec3 aabb_origin = um_mul3(um_add3(mesh->aabb_max, mesh->aabb_min), 0.5f);
-		um_vec3 aabb_extent = um_mul3(um_sub3(mesh->aabb_max, mesh->aabb_min), 0.5f);
-		if (mesh->aabb_is_local) {
-			for (size_t inst_ix = 0; inst_ix < mesh->num_instances; inst_ix++) {
-				viewer_node *node = &vs->nodes[mesh->instance_node_indices[inst_ix]];
-				um_vec3 world_origin = um_transform_point(&node->geometry_to_world, aabb_origin);
-				um_vec3 world_extent = um_transform_extent(&node->geometry_to_world, aabb_extent);
-				vs->aabb_min = um_min3(vs->aabb_min, um_sub3(world_origin, world_extent));
-				vs->aabb_max = um_max3(vs->aabb_max, um_add3(world_origin, world_extent));
-			}
-		} else {
-			vs->aabb_min = um_min3(vs->aabb_min, mesh->aabb_min);
-			vs->aabb_max = um_max3(vs->aabb_max, mesh->aabb_max);
-		}
-	}
-
-	ufbx_free_scene(scene);
 }
 
 bool backend_uses_d3d_perspective(sg_backend backend)
@@ -933,82 +827,10 @@ bool backend_uses_d3d_perspective(sg_backend backend)
 
 void update_camera(viewer *view)
 {
-	viewer_scene *vs = &view->scene;
-
-	um_vec3 aabb_origin = um_mul3(um_add3(vs->aabb_max, vs->aabb_min), 0.5f);
-	um_vec3 aabb_extent = um_mul3(um_sub3(vs->aabb_max, vs->aabb_min), 0.5f);
-	float distance = 2.5f * powf(2.0f, view->camera_distance) * um_max(um_max(aabb_extent.x, aabb_extent.y), aabb_extent.z);
-
-	um_quat camera_rot = um_quat_mul(
-		um_quat_axis_angle(um_v3(0,1,0), view->camera_yaw * UM_DEG_TO_RAD),
-		um_quat_axis_angle(um_v3(1,0,0), view->camera_pitch * UM_DEG_TO_RAD));
-
-	um_vec3 camera_target = aabb_origin;
-	um_vec3 camera_direction = um_quat_rotate(camera_rot, um_v3(0,0,1));
-	um_vec3 camera_pos = um_add3(camera_target, um_mul3(camera_direction, distance));
-
-	view->world_to_view = um_mat_look_at(camera_pos, camera_target, um_v3(0,1,0));
-
-	float fov = 50.0f * UM_DEG_TO_RAD;
-	float aspect = (float)sapp_width() / (float)sapp_height();
-	float near_plane = um_min(distance * 0.001f, 0.1f);
-	float far_plane = um_max(distance * 2.0f, 100.0f);
-
-	if (backend_uses_d3d_perspective(sg_query_backend())) {
-		view->view_to_clip = um_mat_perspective_d3d(fov, aspect, near_plane, far_plane);
-	} else {
-		view->view_to_clip = um_mat_perspective_gl(fov, aspect, near_plane, far_plane);
-	}
-	view->world_to_clip = um_mat_mul(view->view_to_clip, view->world_to_view);
 }
 
 void draw_mesh(viewer *view, viewer_node *node, viewer_mesh *mesh)
 {
-	sg_image blend_shapes = mesh->num_blend_shapes > 0 ? mesh->blend_shape_image : view->empty_blend_shape_image;
-
-	if (mesh->skinned) {
-		sg_apply_pipeline(view->pipe_mesh_lit_skinned);
-
-		skin_vertex_ubo_t skin_ubo = { 0 };
-		for (size_t i = 0; i < mesh->num_bones; i++) {
-			viewer_node *bone = &view->scene.nodes[mesh->bone_indices[i]];
-			skin_ubo.bones[i] = um_mat_mul(bone->node_to_world, mesh->bone_matrices[i]);
-		}
-		sg_apply_uniforms(SG_SHADERSTAGE_VS, SLOT_skin_vertex_ubo, SG_RANGE_REF(skin_ubo));
-
-	} else {
-		sg_apply_pipeline(view->pipe_mesh_lit_static);
-
-	}
-
-	mesh_vertex_ubo_t mesh_ubo = {
-		.geometry_to_world = node->geometry_to_world,
-		.normal_to_world = node->normal_to_world,
-		.world_to_clip = view->world_to_clip,
-		.f_num_blend_shapes = (float)mesh->num_blend_shapes,
-	};
-
-	// sokol-shdc only supports vec4 arrays so reinterpret this `um_vec4` array as `float`
-	float *blend_weights = (float*)mesh_ubo.blend_weights;
-	for (size_t i = 0; i < mesh->num_blend_shapes; i++) {
-		blend_weights[i] = view->scene.blend_channels[mesh->blend_channel_indices[i]].weight;
-	}
-
-	sg_apply_uniforms(SG_SHADERSTAGE_VS, SLOT_mesh_vertex_ubo, SG_RANGE_REF(mesh_ubo));
-
-	for (size_t pi = 0; pi < mesh->num_parts; pi++) {
-		viewer_mesh_part *part = &mesh->parts[pi];
-
-		sg_bindings binds = {
-			.vertex_buffers[0] = part->vertex_buffer,
-			.vertex_buffers[1] = part->skin_buffer,
-			.index_buffer = part->index_buffer,
-			.vs_images[SLOT_blend_shapes] = blend_shapes,
-		};
-		sg_apply_bindings(&binds);
-
-		sg_draw(0, (int)part->num_indices, 1);
-	}
 }
 
 void draw_scene(viewer *view)
@@ -1070,11 +892,11 @@ void onevent(const sapp_event *e)
 	}
 }
 
-void frame(void)
+void frame()
 {
 	static uint64_t last_time;
 	float dt = (float)stm_sec(stm_laptime(&last_time));
-	dt = um_min(dt, 0.1f);
+	dt = std::min(dt, 0.1f);
 
 	viewer_anim *anim = g_viewer.scene.num_animations > 0 ? &g_viewer.scene.animations[0] : NULL;
 
