@@ -13,10 +13,9 @@ set( CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY}/bin )
 add_subdirectory(contrib/osre)
 
 INCLUDE_DIRECTORIES( BEFORE
-    ${PROJECT_SOURCE_DIR}/contrib/assimp/include
-    ${PROJECT_SOURCE_DIR}/contrib/osre/src/Engine
     ./
     ./src
+    ${CMAKE_HOME_DIRECTORY}/contrib/osre/src/Engine
     ${SDL2_INCLUDE_DIRS}
     ${PROJECT_SOURCE_DIR}
 )
