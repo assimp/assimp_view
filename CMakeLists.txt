@@ -14,9 +14,10 @@ add_subdirectory(contrib/osre)
 
 INCLUDE_DIRECTORIES( BEFORE
     ./
-    ./src
-    ${CMAKE_HOME_DIRECTORY}/contrib/osre/src/Engine
-    ${SDL2_INCLUDE_DIRS}
+    src
+	contrib/osre/src/Engine
+    contrib/osre/contrib/cppcore/include
+	${SDL2_INCLUDE_DIRS}
     ${PROJECT_SOURCE_DIR}
 )
 
