@@ -12,16 +12,22 @@ First, you have to check out the code
 
 Now change into the repo folder and start the build:
 
-> cd assimp_view
-> cmake CMakeLists.txt
-> cmake --build .
+```
+cd assimp_view
+cmake .\CMakeLists.txt --preset=default
+cmake --build .
+```
 
 To run the app go to the bin folder and run it
 
 ### Linux
-> cd bin/
-> ./assimp_view
+```
+cd bin/
+./assimp_view
+```
 
 ### Windows
-> cd bin\debug
-> .\assimp_view.exe
+```
+cd bin\debug
+.\assimp_view.exe
+```
