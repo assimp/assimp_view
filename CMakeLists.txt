@@ -39,5 +39,5 @@ ADD_EXECUTABLE( assimp_view
 )
 
 target_link_libraries(assimp_view
-	PRIVATE SDL2::SDL2 assimp GL osre
+	PRIVATE SDL2::SDL2 assimp osre
 )
