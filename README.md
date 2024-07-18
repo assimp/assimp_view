@@ -12,7 +12,7 @@ First, you have to check out the code
 
 Now change into the repo folder and start the build:
 
-> cd osre
+> cd assimp_view
 > cmake CMakeLists.txt
 > cmake --build .
 
