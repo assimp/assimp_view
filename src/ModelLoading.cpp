@@ -38,7 +38,7 @@ using namespace ::OSRE::Common;
 using namespace ::OSRE::RenderBackend;
 
 /// @brief The log-tag
-static constexpr c8 Tag[] = "ModelLoadingApp";
+static constexpr c8 Tag[] = "Assimp-Viewer";
 
 //-------------------------------------------------------------------------------------------------
 ///	@ingroup    Editor
@@ -185,7 +185,7 @@ protected:
 
 int main(int argc, char *argv[]) {
     ModelLoadingApp myApp(argc, argv);
-    if (!myApp.initWindow(10, 10, 1024, 768, "ModelLoader sample! Press o to import an Asset", false, false, App::RenderBackendType::OpenGLRenderBackend)) {
+    if (!myApp.initWindow(10, 10, 1024, 768, "Assimp-Vewer! Press o to import an Asset", false, false, App::RenderBackendType::OpenGLRenderBackend)) {
         return 1;
     }
 
