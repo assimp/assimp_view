@@ -20,6 +20,7 @@ COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
 IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 -----------------------------------------------------------------------------------------------*/
+#include "ModelLoadingApp.h"
 #include "App/App.h"
 #include "App/Scene.h"
 #include "IO/Uri.h"
@@ -40,161 +41,147 @@ using namespace ::OSRE::RenderBackend;
 /// @brief The log-tag
 static constexpr c8 Tag[] = "Assimp-Viewer";
 
-//-------------------------------------------------------------------------------------------------
-///	@ingroup    Editor
-///
-/// @brief
-//-------------------------------------------------------------------------------------------------
-
-/// @brief The example application, will create the renderer and loads a model.
-class ModelLoadingApp : public App::AppBase {
-    String mAssetFolder;                    ///< The asset folder, here we will locate our assets.
-    App::CameraComponent *mCamera;          ///< The camera component.
-    TransformMatrixBlock mTransformMatrix;  ///< The tansform block.
-    TransformComponent::NodePtr mModelNode; ///< The mode node.
-    int mIntention;
-
-public:
-    ModelLoadingApp(int argc, char *argv[]) :
-            AppBase(argc, (const char **)argv, "api", "The render API"),
-            mAssetFolder(),
-            mCamera(nullptr),
-            mTransformMatrix(),
-            mModelNode(),
-            mIntention(0)  {
-        // empty
-    }
-
-    ~ModelLoadingApp() override = default;
-
-    bool hasModel() const {
-        return mModelNode.isValid();
-    }
-
-    void pushIntention() {
-        mIntention++;
-    }
-
-    void popIntention() {
-        mIntention--;
-    }
-
-    void checkName(String &name) {
-        if (name.empty()) {
-            name = "No Name";
-        }
-    }
-
-    void dumpNode(aiNode &node) {
-        String name = node.mName.C_Str();
-        checkName(name);
-        for (int i=0; i<mIntention; ++i) {
-            std::cout << "  ";
-        }
-        
-        std::cout << "Node name: " <<  name << "\n";
-        for (unsigned int i=0; i < node.mNumChildren; ++i) {
-            pushIntention();
-            dumpNode(*node.mChildren[i]);
-            popIntention();
-        }
-    }
-
-    void showStatistics(const aiScene &scene) {
-        std::cout << "Modelname: " << scene.mName.C_Str() << "\n";
-        std::cout << "=============================================================\n";
-
-        if (scene.mRootNode != nullptr) {
-            dumpNode(*scene.mRootNode);
-        }
-
-        std::cout << "Number of meshes    : " << scene.mNumMeshes << "\n";
-        std::cout << "Number of materials : " << scene.mNumMaterials << "\n";
-    }
-
-protected:
-    void loadAsset(const IO::Uri &modelLoc) {
-        AssimpWrapper assimpWrapper(*getIdContainer(), getStage()->getActiveWorld(0));
-        if (!assimpWrapper.importAsset(modelLoc, 0)) {
-            return;
-        }
-
-        RenderBackendService *rbSrv = ServiceProvider::getService<RenderBackendService>(ServiceType::RenderService);
-        if (nullptr == rbSrv) {
-            return;
-        }
-        Platform::AbstractWindow *rootWindow = getRootWindow();
-        if (nullptr == rootWindow) {
-            return;
-        }
-
-        Rect2ui windowsRect;
-        rootWindow->getWindowsRect(windowsRect);
-        World *world = getStage()->addActiveWorld("model");
-        Entity *entity = assimpWrapper.getEntity();
-        Entity *camEntity = new Entity("camera", *getIdContainer(), world);
-        mCamera = (CameraComponent*)camEntity->createComponent(ComponentType::CameraComponentType);
-        mCamera->setProjectionParameters(60.f, (f32)windowsRect.width, (f32)windowsRect.height, 0.01f, 1000.f);
-        world->setActiveCamera(mCamera);
-
-        world->addEntity(entity);
-        mCamera->observeBoundingBox(entity->getAABB());
-        mModelNode = entity->getNode();
-
-        showStatistics(*assimpWrapper.getScene());
-    }
-
-    void onUpdate() override {
-        if (AppBase::isKeyPressed(Platform::KEY_O) || AppBase::isKeyPressed(Platform::KEY_o)) {
-            IO::Uri modelLoc;
-            Platform::PlatformOperations::getFileOpenDialog("Choose asset for import", "*", modelLoc);
-            if ( modelLoc.isValid()) {
-                loadAsset(modelLoc);
-            }
-        }
-
-        glm::mat4 rot(1.0);
-        if (AppBase::isKeyPressed(Platform::KEY_A)) {
-            mTransformMatrix.mModel *= glm::rotate(rot, 0.01f, glm::vec3(1, 0, 0));
-
-        }
-        if (AppBase::isKeyPressed(Platform::KEY_S)) {
-            mTransformMatrix.mModel *= glm::rotate(rot, -0.01f, glm::vec3(1, 0, 0));
-        }
-
-        if (AppBase::isKeyPressed(Platform::KEY_W)) {
-            mTransformMatrix.mModel *= glm::rotate(rot, 0.01f, glm::vec3(0, 1, 0));
-        }
-
-        if (AppBase::isKeyPressed(Platform::KEY_D)) {
-            mTransformMatrix.mModel *= glm::rotate(rot, -0.01f, glm::vec3(0, 1, 0));
-        }
-        RenderBackendService *rbSrv = ServiceProvider::getService<RenderBackendService>(ServiceType::RenderService);
-
-        rbSrv->beginPass(RenderPass::getPassNameById(RenderPassId));
-        rbSrv->beginRenderBatch("b1");
-
-        rbSrv->setMatrix(MatrixType::Model, mTransformMatrix.mModel);
-
-        rbSrv->endRenderBatch();
-        rbSrv->endPass();
-
-        AppBase::onUpdate();
-    }
-};
-
-int main(int argc, char *argv[]) {
-    ModelLoadingApp myApp(argc, argv);
-    if (!myApp.initWindow(10, 10, 1024, 768, "Assimp-Vewer! Press o to import an Asset", false, false, App::RenderBackendType::OpenGLRenderBackend)) {
-        return 1;
-    }
-
-    while (myApp.handleEvents()) {
-        myApp.update();
-        myApp.requestNextFrame();
-    }
-
-    myApp.destroy();
-
-    return 0;
+ModelLoadingApp::ModelLoadingApp(int argc, char *argv[]) :
+        AppBase(argc, (const char **)argv, "api", "The render API"),
+        mAssetFolder(),
+        mCamera(nullptr),
+        mTransformMatrix(),
+        mModelNode(),
+        mIntention(0)  {
+    // empty
 }
+
+bool ModelLoadingApp::hasModel() const {
+    return mModelNode.isValid();
+}
+
+void ModelLoadingApp::pushIntention() {
+    mIntention++;
+}
+
+void ModelLoadingApp::popIntention() {
+    mIntention--;
+}
+
+void ModelLoadingApp::checkName(String &name) {
+    if (name.empty()) {
+        name = "No Name";
+    }
+}
+
+void ModelLoadingApp::dumpNode(aiNode &node) {
+    String name = node.mName.C_Str();
+    checkName(name);
+    for (int i=0; i<mIntention; ++i) {
+        std::cout << "  ";
+    }
+    
+    std::cout << "Node name: " <<  name << "\n";
+    for (unsigned int i=0; i < node.mNumChildren; ++i) {
+        pushIntention();
+        dumpNode(*node.mChildren[i]);
+        popIntention();
+    }
+}
+
+void ModelLoadingApp::showStatistics(const aiScene &scene) {
+    std::cout << "Modelname: " << scene.mName.C_Str() << "\n";
+    std::cout << "=============================================================\n";
+
+    if (scene.mRootNode != nullptr) {
+        dumpNode(*scene.mRootNode);
+    }
+
+    std::cout << "Number of meshes    : " << scene.mNumMeshes << "\n";
+    std::cout << "Number of materials : " << scene.mNumMaterials << "\n";
+}
+
+void ModelLoadingApp::importAsset(const IO::Uri &modelLoc) {
+    AssimpWrapper assimpWrapper(*getIdContainer(), getStage()->getActiveWorld(0));
+    if (!assimpWrapper.importAsset(modelLoc, 0)) {
+        return;
+    }
+
+    RenderBackendService *rbSrv = ServiceProvider::getService<RenderBackendService>(ServiceType::RenderService);
+    if (nullptr == rbSrv) {
+        return;
+    }
+    Platform::AbstractWindow *rootWindow = getRootWindow();
+    if (nullptr == rootWindow) {
+        return;
+    }
+
+    Rect2ui windowsRect;
+    rootWindow->getWindowsRect(windowsRect);
+    World *world = getStage()->addActiveWorld("model");
+    Entity *entity = assimpWrapper.getEntity();
+    Entity *camEntity = new Entity("camera", *getIdContainer(), world);
+    mCamera = (CameraComponent*)camEntity->createComponent(ComponentType::CameraComponentType);
+    mCamera->setProjectionParameters(60.f, (f32)windowsRect.width, (f32)windowsRect.height, 0.01f, 1000.f);
+    world->setActiveCamera(mCamera);
+
+    world->addEntity(entity);
+    mCamera->observeBoundingBox(entity->getAABB());
+    mModelNode = entity->getNode();
+
+    showStatistics(*assimpWrapper.getScene());
+}
+
+void ModelLoadingApp::exportAsset(const IO::Uri &modelLoc) {
+    if (modelLoc.isEmpty()) {
+        return;
+    }
+
+    if (!hasModel()) {
+        return;
+    }
+
+
+}
+
+void ModelLoadingApp::onUpdate() {
+    if (AppBase::isKeyPressed(Platform::KEY_i) || AppBase::isKeyPressed(Platform::KEY_i)) {
+        IO::Uri modelLoc;
+        Platform::PlatformOperations::getFileOpenDialog("Choose asset for import", "*", modelLoc);
+        if ( modelLoc.isValid()) {
+            importAsset(modelLoc);
+        }
+    }
+
+    if (AppBase::isKeyPressed(Platform::KEY_E) || AppBase::isKeyPressed(Platform::KEY_e)) {
+        IO::Uri modelLoc;
+        Platform::PlatformOperations::getFileSaveDialog("Choose asset for export", "*", modelLoc);
+        if ( modelLoc.isValid()) {
+            exportAsset(modelLoc);
+        }
+    }
+
+    glm::mat4 rot(1.0);
+    if (AppBase::isKeyPressed(Platform::KEY_A) || AppBase::isKeyPressed(Platform::KEY_a)) {
+        mTransformMatrix.mModel *= glm::rotate(rot, 0.01f, glm::vec3(1, 0, 0));
+
+    }
+    if (AppBase::isKeyPressed(Platform::KEY_S) || AppBase::isKeyPressed(Platform::KEY_s)) {
+        mTransformMatrix.mModel *= glm::rotate(rot, -0.01f, glm::vec3(1, 0, 0));
+    }
+
+    if (AppBase::isKeyPressed(Platform::KEY_W) || AppBase::isKeyPressed(Platform::KEY_w)) {
+        mTransformMatrix.mModel *= glm::rotate(rot, 0.01f, glm::vec3(0, 1, 0));
+    }
+
+    if (AppBase::isKeyPressed(Platform::KEY_D) || AppBase::isKeyPressed(Platform::KEY_d)) {
+        mTransformMatrix.mModel *= glm::rotate(rot, -0.01f, glm::vec3(0, 1, 0));
+    }
+    RenderBackendService *rbSrv = ServiceProvider::getService<RenderBackendService>(ServiceType::RenderService);
+
+    rbSrv->beginPass(RenderPass::getPassNameById(RenderPassId));
+    rbSrv->beginRenderBatch("b1");
+
+    rbSrv->setMatrix(MatrixType::Model, mTransformMatrix.mModel);
+
+    rbSrv->endRenderBatch();
+    rbSrv->endPass();
+
+    AppBase::onUpdate();
+}
+
