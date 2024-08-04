@@ -28,6 +28,8 @@ link_directories(
 )
 
 set(assimpview_main_src
+    src/main.cpp
+    src/ModelLoadingApp.h
     src/ModelLoading.cpp
     src/SceneData.h
 )
