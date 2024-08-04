@@ -38,11 +38,18 @@ using namespace ::OSRE::App;
 using namespace ::OSRE::Common;
 using namespace ::OSRE::RenderBackend;
 
+namespace OSRE {
+    namespace App {
+        class AssimpWrapper;
+    } // Namespace App
+} // Namespace OSRE
+
+
 /// @brief The loader application, will create the renderer and loads a model.
 class ModelLoadingApp final : public App::AppBase {
 public:
     ModelLoadingApp(int argc, char *argv[]);
-    ~ModelLoadingApp() override = default;
+    ~ModelLoadingApp() override;
     bool hasModel() const;
     void pushIntention();
     void popIntention();
@@ -61,4 +68,5 @@ private:
     TransformMatrixBlock mTransformMatrix;  ///< The tansform block.
     TransformComponent::NodePtr mModelNode; ///< The mode node.
     int mIntention;
+    OSRE::App::AssimpWrapper *mAssimpWrapper;
 };

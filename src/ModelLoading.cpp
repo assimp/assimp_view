@@ -32,6 +32,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "RenderBackend/RenderCommon.h"
 
 #include <assimp/scene.h>
+#include <assimp/Exporter.hpp>
 
 using namespace ::OSRE;
 using namespace ::OSRE::App;
@@ -47,8 +48,13 @@ ModelLoadingApp::ModelLoadingApp(int argc, char *argv[]) :
         mCamera(nullptr),
         mTransformMatrix(),
         mModelNode(),
-        mIntention(0)  {
+        mIntention(0),
+        mAssimpWrapper(nullptr)  {
     // empty
+}
+
+ModelLoadingApp::~ModelLoadingApp() {
+    delete mAssimpWrapper;
 }
 
 bool ModelLoadingApp::hasModel() const {
@@ -97,8 +103,8 @@ void ModelLoadingApp::showStatistics(const aiScene &scene) {
 }
 
 void ModelLoadingApp::importAsset(const IO::Uri &modelLoc) {
-    AssimpWrapper assimpWrapper(*getIdContainer(), getStage()->getActiveWorld(0));
-    if (!assimpWrapper.importAsset(modelLoc, 0)) {
+    mAssimpWrapper = new AssimpWrapper(*getIdContainer(), getStage()->getActiveWorld(0));
+    if (!mAssimpWrapper->importAsset(modelLoc, 0)) {
         return;
     }
 
@@ -114,7 +120,7 @@ void ModelLoadingApp::importAsset(const IO::Uri &modelLoc) {
     Rect2ui windowsRect;
     rootWindow->getWindowsRect(windowsRect);
     World *world = getStage()->addActiveWorld("model");
-    Entity *entity = assimpWrapper.getEntity();
+    Entity *entity = mAssimpWrapper->getEntity();
     Entity *camEntity = new Entity("camera", *getIdContainer(), world);
     mCamera = (CameraComponent*)camEntity->createComponent(ComponentType::CameraComponentType);
     mCamera->setProjectionParameters(60.f, (f32)windowsRect.width, (f32)windowsRect.height, 0.01f, 1000.f);
@@ -124,7 +130,7 @@ void ModelLoadingApp::importAsset(const IO::Uri &modelLoc) {
     mCamera->observeBoundingBox(entity->getAABB());
     mModelNode = entity->getNode();
 
-    showStatistics(*assimpWrapper.getScene());
+    showStatistics(*mAssimpWrapper->getScene());
 }
 
 void ModelLoadingApp::exportAsset(const IO::Uri &modelLoc) {
@@ -136,11 +142,12 @@ void ModelLoadingApp::exportAsset(const IO::Uri &modelLoc) {
         return;
     }
 
-
+    Assimp::Exporter exporter;
+    exporter.Export(mAssimpWrapper->getScene(), "obj", modelLoc.getAbsPath().c_str());
 }
 
 void ModelLoadingApp::onUpdate() {
-    if (AppBase::isKeyPressed(Platform::KEY_i) || AppBase::isKeyPressed(Platform::KEY_i)) {
+    if (AppBase::isKeyPressed(Platform::KEY_I) || AppBase::isKeyPressed(Platform::KEY_i)) {
         IO::Uri modelLoc;
         Platform::PlatformOperations::getFileOpenDialog("Choose asset for import", "*", modelLoc);
         if ( modelLoc.isValid()) {
