@@ -32,6 +32,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "Properties/Settings.h"
 #include "RenderBackend/RenderBackendService.h"
 #include "RenderBackend/RenderCommon.h"
+#include "RenderBackend/TransformMatrixBlock.h"
 
 using namespace ::OSRE;
 using namespace ::OSRE::App;

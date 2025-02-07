@@ -7,7 +7,7 @@ using namespace ::OSRE::RenderBackend;
 
 int main(int argc, char *argv[]) {
     ModelLoadingApp myApp(argc, argv);
-    if (!myApp.initWindow(10, 10, 1024, 768, "Assimp-Vewer! Press i to import, e to export", false, false, App::RenderBackendType::OpenGLRenderBackend)) {
+    if (!myApp.initWindow(10, 10, 1024, 768, "Assimp-Vewer! Press i to import, e to export", WindowMode::Windowed, WindowType::Root, App::RenderBackendType::OpenGLRenderBackend)) {
         return 1;
     }
 

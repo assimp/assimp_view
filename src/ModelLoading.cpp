@@ -34,6 +34,8 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <assimp/scene.h>
 #include <assimp/Exporter.hpp>
 
+#include <iostream>
+
 using namespace ::OSRE;
 using namespace ::OSRE::App;
 using namespace ::OSRE::Common;
@@ -103,7 +105,7 @@ void ModelLoadingApp::showStatistics(const aiScene &scene) {
 }
 
 void ModelLoadingApp::importAsset(const IO::Uri &modelLoc) {
-    mAssimpWrapper = new AssimpWrapper(*getIdContainer(), getStage()->getActiveWorld(0));
+    mAssimpWrapper = new AssimpWrapper(*getIdContainer(), getActiveScene());
     if (!mAssimpWrapper->importAsset(modelLoc, 0)) {
         return;
     }
@@ -119,14 +121,14 @@ void ModelLoadingApp::importAsset(const IO::Uri &modelLoc) {
 
     Rect2ui windowsRect;
     rootWindow->getWindowsRect(windowsRect);
-    World *world = getStage()->addActiveWorld("model");
+    Scene *scene = getActiveScene();
     Entity *entity = mAssimpWrapper->getEntity();
-    Entity *camEntity = new Entity("camera", *getIdContainer(), world);
+    Entity *camEntity = new Entity("camera", *getIdContainer(), scene);
     mCamera = (CameraComponent*)camEntity->createComponent(ComponentType::CameraComponentType);
     mCamera->setProjectionParameters(60.f, (f32)windowsRect.width, (f32)windowsRect.height, 0.01f, 1000.f);
-    world->setActiveCamera(mCamera);
+    scene->setActiveCamera(mCamera);
 
-    world->addEntity(entity);
+    scene->addEntity(entity);
     mCamera->observeBoundingBox(entity->getAABB());
     mModelNode = entity->getNode();
 
