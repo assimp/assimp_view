@@ -2,6 +2,7 @@
   "dependencies": [
     "glm",
     "sdl2",
-    "glew"
+    "glew",
+    "gtest"
   ]
 }
