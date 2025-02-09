@@ -1,9 +1,7 @@
-#pragma once
-
 /*-----------------------------------------------------------------------------------------------
 The MIT License (MIT)
 
-Copyright (c) 2015-2024 OSRE ( Open Source Render Engine ) by Kim Kulling
+Copyright (c) 2024-2025 Assimp-Viewer
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in
@@ -24,14 +22,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 -----------------------------------------------------------------------------------------------*/
 
 #include "App/App.h"
-#include "App/Scene.h"
-#include "IO/Uri.h"
-#include "Common/BaseMath.h"
-#include "Platform/AbstractWindow.h"
-#include "Platform/PlatformOperations.h"
-#include "Properties/Settings.h"
 #include "RenderBackend/RenderBackendService.h"
-#include "RenderBackend/RenderCommon.h"
 #include "RenderBackend/TransformMatrixBlock.h"
 
 using namespace ::OSRE;
@@ -57,6 +48,10 @@ public:
     void checkName(String &name);
     void dumpNode(aiNode &node);
     void showStatistics(const aiScene &scene);
+    void onMouseUpdate();
+    void zoom();
+    void zoomAll();
+    void clear();
 
 protected:
     void importAsset(const IO::Uri &modelLoc);
@@ -65,9 +60,11 @@ protected:
 
 private:
     String mAssetFolder;                    ///< The asset folder, here we will locate our assets.
-    App::CameraComponent *mCamera;          ///< The camera component.
+    CameraComponent *mCamera;          ///< The camera component.
     TransformMatrixBlock mTransformMatrix;  ///< The tansform block.
     TransformComponent::NodePtr mModelNode; ///< The mode node.
     int mIntention;
-    OSRE::App::AssimpWrapper *mAssimpWrapper;
+    AssimpWrapper *mAssimpWrapper;
+    glm::i32vec2 mMousePos;
+    glm::i32vec2 mLastMousePos;
 };

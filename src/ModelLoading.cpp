@@ -1,7 +1,7 @@
 /*-----------------------------------------------------------------------------------------------
 The MIT License (MIT)
 
-Copyright (c) 2015-2024 OSRE ( Open Source Render Engine ) by Kim Kulling
+Copyright (c) 2024-2025 Assimp-Viewer
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in
@@ -20,11 +20,12 @@ COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
 IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 -----------------------------------------------------------------------------------------------*/
-#include "ModelLoadingApp.h"
 #include "App/App.h"
+#include "App/MouseEventListener.h"
 #include "App/Scene.h"
-#include "IO/Uri.h"
 #include "Common/BaseMath.h"
+#include "IO/Uri.h"
+#include "ModelLoadingApp.h"
 #include "Platform/AbstractWindow.h"
 #include "Platform/PlatformOperations.h"
 #include "Properties/Settings.h"
@@ -46,17 +47,15 @@ static constexpr c8 Tag[] = "Assimp-Viewer";
 
 ModelLoadingApp::ModelLoadingApp(int argc, char *argv[]) :
         AppBase(argc, (const char **)argv, "api", "The render API"),
-        mAssetFolder(),
         mCamera(nullptr),
-        mTransformMatrix(),
-        mModelNode(),
         mIntention(0),
         mAssimpWrapper(nullptr)  {
-    // empty
+    mLastMousePos.x = 0;
+    mLastMousePos.y = 0;
 }
 
 ModelLoadingApp::~ModelLoadingApp() {
-    delete mAssimpWrapper;
+    clear();
 }
 
 bool ModelLoadingApp::hasModel() const {
@@ -104,7 +103,68 @@ void ModelLoadingApp::showStatistics(const aiScene &scene) {
     std::cout << "Number of materials : " << scene.mNumMaterials << "\n";
 }
 
+void ModelLoadingApp::onMouseUpdate() {
+    auto *mouseListener = AppBase::getMouseEventListener();
+    if (mouseListener == nullptr) {
+        return;
+    }
+    mMousePos.x = mouseListener->getAbsoluteX();
+    mMousePos.y = mouseListener->getAbsoluteY();
+
+    glm::mat4 localModel = glm::mat4(1.0);
+    if (mCamera !=  nullptr) {
+        if (mouseListener->leftButttonPressed()) {
+            const int diffX = (mMousePos.x - mLastMousePos.x);
+            const int diffY = (mMousePos.y - mLastMousePos.y);
+            if (diffX != 0) {
+                const f32 angle = glm::radians(((f32)diffX)/6);
+                localModel = rotate(localModel, angle, mCamera->getRight());
+            }
+
+            if (diffY != 0) {
+                const f32 angle = glm::radians(((f32)diffY)/6);
+                localModel = rotate(localModel, angle, mCamera->getUp());
+            }
+            mTransformMatrix.mModel *= localModel;
+        }
+
+        if (mouseListener->middleButttonPressed()) {
+            zoom();
+        }
+    }
+    mLastMousePos.x = mMousePos.x;
+    mLastMousePos.y = mMousePos.y;
+}
+
+void ModelLoadingApp::zoom() {
+    glm::mat4 localModel = glm::mat4(1.0);
+    const int diff = (mMousePos.y - mLastMousePos.y);
+    if (diff != 0) {
+        const f32 scaleFactor = 1.0 + (diff * 0.01);
+
+        glm::vec3 s(scaleFactor, scaleFactor, scaleFactor);
+        localModel = scale(localModel, s);
+        mTransformMatrix.mModel *= localModel;
+    }
+}
+
+void ModelLoadingApp::zoomAll() {
+    Scene *scene = getActiveScene();
+    if (scene == nullptr || mCamera == nullptr) {
+        return;
+    }
+
+    Entity *entity = mAssimpWrapper->getEntity();
+    mCamera->observeBoundingBox(entity->getAABB());
+}
+
+void ModelLoadingApp::clear() {
+    delete mAssimpWrapper;
+    mAssimpWrapper = nullptr;
+}
+
 void ModelLoadingApp::importAsset(const IO::Uri &modelLoc) {
+    clear();
     mAssimpWrapper = new AssimpWrapper(*getIdContainer(), getActiveScene());
     if (!mAssimpWrapper->importAsset(modelLoc, 0)) {
         return;
@@ -124,12 +184,12 @@ void ModelLoadingApp::importAsset(const IO::Uri &modelLoc) {
     Scene *scene = getActiveScene();
     Entity *entity = mAssimpWrapper->getEntity();
     Entity *camEntity = new Entity("camera", *getIdContainer(), scene);
-    mCamera = (CameraComponent*)camEntity->createComponent(ComponentType::CameraComponentType);
+    mCamera = (CameraComponent*) camEntity->createComponent(ComponentType::CameraComponentType);
     mCamera->setProjectionParameters(60.f, (f32)windowsRect.width, (f32)windowsRect.height, 0.01f, 1000.f);
     scene->setActiveCamera(mCamera);
 
     scene->addEntity(entity);
-    mCamera->observeBoundingBox(entity->getAABB());
+    zoomAll();
     mModelNode = entity->getNode();
 
     showStatistics(*mAssimpWrapper->getScene());
@@ -145,7 +205,10 @@ void ModelLoadingApp::exportAsset(const IO::Uri &modelLoc) {
     }
 
     Assimp::Exporter exporter;
-    exporter.Export(mAssimpWrapper->getScene(), "obj", modelLoc.getAbsPath().c_str());
+    aiReturn res = exporter.Export(mAssimpWrapper->getScene(), "obj", modelLoc.getAbsPath().c_str());
+    if (res != AI_SUCCESS) {
+        osre_error(Tag, "Error while exporting asset");
+    }
 }
 
 void ModelLoadingApp::onUpdate() {
@@ -164,7 +227,6 @@ void ModelLoadingApp::onUpdate() {
             exportAsset(modelLoc);
         }
     }
-
     glm::mat4 rot(1.0);
     if (AppBase::isKeyPressed(Platform::KEY_A) || AppBase::isKeyPressed(Platform::KEY_a)) {
         mTransformMatrix.mModel *= glm::rotate(rot, 0.01f, glm::vec3(1, 0, 0));
@@ -181,6 +243,7 @@ void ModelLoadingApp::onUpdate() {
     if (AppBase::isKeyPressed(Platform::KEY_D) || AppBase::isKeyPressed(Platform::KEY_d)) {
         mTransformMatrix.mModel *= glm::rotate(rot, -0.01f, glm::vec3(0, 1, 0));
     }
+    onMouseUpdate();
     RenderBackendService *rbSrv = ServiceProvider::getService<RenderBackendService>(ServiceType::RenderService);
 
     rbSrv->beginPass(RenderPass::getPassNameById(RenderPassId));
