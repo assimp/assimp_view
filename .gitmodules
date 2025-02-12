@@ -1,6 +1,3 @@
-[submodule "contrib/assimp"]
-	path = contrib/assimp
-	url = https://github.com/assimp/assimp.git
 [submodule "contrib/osre"]
 	path = contrib/osre
 	url = https://github.com/kimkulling/osre.git
