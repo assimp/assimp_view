@@ -113,7 +113,7 @@ void ModelLoadingApp::onMouseUpdate() {
 
     glm::mat4 localModel = glm::mat4(1.0);
     if (mCamera !=  nullptr) {
-        if (mouseListener->leftButttonPressed()) {
+        if (mouseListener->leftButtonPressed()) {
             const int diffX = (mMousePos.x - mLastMousePos.x);
             const int diffY = (mMousePos.y - mLastMousePos.y);
             if (diffX != 0) {
@@ -128,7 +128,7 @@ void ModelLoadingApp::onMouseUpdate() {
             mTransformMatrix.mModel *= localModel;
         }
 
-        if (mouseListener->middleButttonPressed()) {
+        if (mouseListener->middleButtonPressed()) {
             zoom();
         }
     }
