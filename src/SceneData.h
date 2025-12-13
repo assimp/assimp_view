@@ -29,17 +29,13 @@ struct aiScene;
 namespace AssimpViewer {
 
 struct SceneData {
-    std::string mAssetName;
-    const aiScene *mScene;
+    std::string mAssetName{"none"};
+    const aiScene *mScene{nullptr};
 
-    SceneData();
+    SceneData() = default;
     ~SceneData() = default;
+    SceneData(const SceneData &) = delete;
+    SceneData &operator=(const SceneData &) = delete;
 };
-
-inline SceneData::SceneData() :
-        mAssetName("none"),
-        mScene(nullptr) {
-    // empty
-}
 
 } // namespace AssimpViewer

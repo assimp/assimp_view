@@ -59,7 +59,7 @@ ModelLoadingApp::~ModelLoadingApp() {
 }
 
 bool ModelLoadingApp::hasModel() const {
-    return mModelNode.isValid();
+    return mModelNode != nullptr;
 }
 
 void ModelLoadingApp::pushIntention() {
@@ -256,4 +256,3 @@ void ModelLoadingApp::onUpdate() {
 
     AppBase::onUpdate();
 }
-
